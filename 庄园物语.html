@@ -1,0 +1,4034 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>庄园物语 · 地主经营模拟（单文件版）</title>
+<style>
+/* =========================================================================
+ * 庄园物语 · 样式表（暖纸 + 墨色田园风）
+ * ========================================================================= */
+:root {
+  --paper: #f6f1e6;
+  --paper-2: #efe7d6;
+  --card: #fffdf7;
+  --ink: #33302a;
+  --ink-soft: #7c745f;
+  --line: #e3d9c3;
+  --line-2: #d4c8ab;
+  --green: #4a7c59;
+  --green-soft: #e4efe4;
+  --red: #b5442d;
+  --red-soft: #f6e3dd;
+  --gold: #c9a24b;
+  --gold-soft: #f5ecd6;
+  --blue: #4a6f8f;
+  --font-serif: 'Songti SC', 'STSong', 'Noto Serif CJK SC', 'SimSun', serif;
+  --font: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  --shadow: 0 8px 26px rgba(90, 70, 30, .16);
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; margin: 0; }
+body {
+  font-family: var(--font);
+  color: var(--ink);
+  background:
+    radial-gradient(ellipse 90% 60% at 70% -10%, rgba(201, 162, 75, .10), transparent 60%),
+    var(--paper);
+  overflow: hidden;
+  user-select: none;
+}
+button { font-family: inherit; cursor: pointer; }
+kbd {
+  display: inline-block; padding: 1px 6px; border: 1px solid #d8cdb2; border-bottom-width: 2px;
+  border-radius: 5px; background: #fbf8f0; font: 12px/1.5 var(--font); color: var(--ink-soft);
+}
+.dim { color: var(--ink-soft); }
+
+.app { height: 100vh; display: flex; flex-direction: column; }
+
+/* ------------------------------------------------------------- 顶栏 */
+.topbar {
+  flex: 0 0 auto; display: flex; align-items: center; gap: 14px;
+  padding: 9px 18px; border-bottom: 1px solid var(--line-2);
+  background: linear-gradient(180deg, #fbf7ec, #f3ecdc);
+  box-shadow: 0 2px 10px rgba(90, 70, 30, .08); z-index: 20;
+}
+.brand { display: flex; align-items: center; gap: 10px; }
+.brand-mark {
+  width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center;
+  font-family: var(--font-serif); font-size: 23px; font-weight: 700; color: #fdf9ee;
+  background: linear-gradient(150deg, #b5442d, #8c2f1e);
+  box-shadow: 0 3px 10px rgba(140, 47, 30, .3);
+}
+.brand-text h1 { margin: 0; font-family: var(--font-serif); font-size: 20px; letter-spacing: 3px; color: var(--ink); }
+.brand-text p { margin: 2px 0 0; font-size: 11px; color: var(--ink-soft); letter-spacing: 1px; }
+
+.res-strip { flex: 1; display: flex; gap: 5px; flex-wrap: wrap; justify-content: center; }
+.res-chip {
+  display: flex; align-items: baseline; gap: 4px; padding: 4px 8px; border-radius: 8px;
+  background: rgba(255, 255, 255, .6); border: 1px solid var(--line);
+  font-size: 11px; color: var(--ink-soft); white-space: nowrap;
+}
+.res-chip b { font-size: 13.5px; color: var(--ink); font-variant-numeric: tabular-nums; font-weight: 700; }
+.res-chip.time b { font-family: var(--font-serif); letter-spacing: 1px; }
+.res-chip.cash b { color: #8a6d1f; }
+.res-chip.grain b { color: var(--green); }
+.res-chip.debt b { color: var(--red); }
+.res-chip.bump b { animation: bump .4s ease; }
+@keyframes bump { 45% { transform: scale(1.3); } }
+
+.tools { display: flex; gap: 6px; }
+.tool-btn {
+  padding: 8px 12px; border-radius: 9px; border: 1px solid var(--line-2);
+  background: rgba(255, 255, 255, .65); color: var(--ink); font-size: 12.5px; transition: .15s;
+  white-space: nowrap;
+}
+.tool-btn:hover { background: #fff; transform: translateY(-1px); }
+.tool-btn.primary-ghost { border-color: rgba(181, 68, 45, .5); color: var(--red); }
+.tool-btn.off { color: var(--ink-soft); opacity: .6; }
+
+/* ------------------------------------------------------------- 布局 */
+.layout { flex: 1; min-height: 0; display: flex; gap: 14px; padding: 14px 18px 16px; }
+.left-col { flex: 1.25; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+.right-col {
+  flex: 1; min-width: 340px; max-width: 460px; display: flex; flex-direction: column;
+  background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+  box-shadow: var(--shadow); overflow: hidden;
+}
+
+/* ------------------------------------------------------------- 田庄 */
+.fields-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 0 2px;
+}
+.fields-head h2 { margin: 0; font-family: var(--font-serif); font-size: 19px; letter-spacing: 2px; white-space: nowrap; }
+.fields-head h2 .dim { font-size: 12px; font-family: var(--font); letter-spacing: 0; margin-left: 6px; }
+.fields-buy { display: flex; gap: 6px; flex-wrap: wrap; }
+.buy-btn {
+  padding: 7px 11px; border-radius: 9px; border: 1px solid var(--line-2); background: var(--card);
+  font-size: 12px; color: var(--ink); transition: .15s;
+}
+.buy-btn:hover:not(:disabled) { border-color: var(--gold); background: var(--gold-soft); }
+.buy-btn:disabled { opacity: .45; cursor: not-allowed; }
+.buy-btn b { font-size: 11px; color: #8a6d1f; }
+
+.plot-grid {
+  flex: 0 1 auto; min-height: 120px; max-height: 52vh; overflow-y: auto; padding: 2px 2px 8px;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(235px, 1fr)); gap: 10px;
+  align-content: start;
+}
+.plot-card {
+  background: var(--card); border: 1px solid var(--line); border-radius: 13px; padding: 11px 12px 10px;
+  box-shadow: 0 2px 8px rgba(90, 70, 30, .07); display: flex; flex-direction: column; gap: 7px;
+  animation: plotIn .25s ease;
+}
+@keyframes plotIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.plot-head { display: flex; align-items: center; gap: 7px; }
+.plot-type {
+  font-family: var(--font-serif); font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 7px;
+  letter-spacing: 1px; color: #fff;
+}
+.plot-type.paddy { background: var(--green); }
+.plot-type.dry { background: #a97b3e; }
+.plot-type.slope { background: #7b8f5a; }
+.plot-mu { font-size: 12px; color: var(--ink-soft); }
+.plot-fallow { font-size: 11px; color: #8a6d1f; background: var(--gold-soft); padding: 2px 7px; border-radius: 7px; }
+.plot-sell {
+  margin-left: auto; font-size: 11px; padding: 3px 9px; border-radius: 7px;
+  border: 1px solid var(--line-2); background: transparent; color: var(--ink-soft);
+}
+.plot-sell:hover { color: var(--red); border-color: var(--red); }
+.plot-crop { font-size: 13px; min-height: 34px; display: flex; align-items: center; gap: 7px; }
+.crop-badge {
+  width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; flex: 0 0 auto;
+  font-family: var(--font-serif); font-size: 14px; font-weight: 700; color: #fff;
+  background: var(--green);
+}
+.crop-badge.cotton, .crop-badge.tea { background: #7b8f5a; }
+.crop-badge.mulberry { background: #9a6a7d; }
+.crop-badge.wheat { background: #a97b3e; }
+.crop-info b { font-size: 13.5px; }
+.crop-info span { display: block; font-size: 11px; color: var(--ink-soft); margin-top: 1px; }
+.crop-info .stress-warn { color: var(--red); font-weight: 600; }
+.plot-idle { color: var(--ink-soft); font-size: 12.5px; }
+.fert-row { display: flex; align-items: center; gap: 7px; font-size: 11px; color: var(--ink-soft); }
+.fert-bar { flex: 1; height: 7px; border-radius: 5px; background: var(--paper-2); overflow: hidden; }
+.fert-bar i { display: block; height: 100%; border-radius: 5px; background: linear-gradient(90deg, #b0a06a, var(--green)); transition: width .3s; }
+.plot-actions { display: flex; gap: 5px; align-items: center; }
+.plot-actions select {
+  flex: 1; min-width: 0; padding: 5px 6px; border-radius: 8px; border: 1px solid var(--line-2);
+  background: #fff; font-size: 12px; color: var(--ink);
+}
+.mini-btn {
+  padding: 5px 9px; border-radius: 8px; border: 1px solid var(--line-2); background: #fff;
+  font-size: 11.5px; color: var(--ink); white-space: nowrap; transition: .15s;
+}
+.mini-btn:hover:not(:disabled) { border-color: var(--gold); background: var(--gold-soft); }
+.mini-btn:disabled { opacity: .45; cursor: not-allowed; }
+.mini-btn.danger:hover { border-color: var(--red); background: var(--red-soft); color: var(--red); }
+
+/* 存档导入 / 导出 */
+.save-transfer { display: flex; gap: 8px; margin-bottom: 4px; }
+.save-transfer .mini-btn { flex: 1; padding: 9px 10px; font-size: 12.5px; }
+.mini-btn.strong { background: var(--gold-soft); border-color: var(--gold); font-weight: 700; }
+.mini-btn.strong:hover:not(:disabled) { background: #f3e3bd; }
+.transfer-hint { margin: 6px 2px 12px; font-size: 11.5px; line-height: 1.65; color: var(--ink-soft); }
+#modal-saves .modal-panel.dropping { outline: 2px dashed var(--gold); outline-offset: -6px; background: #fffdf6; }
+#modal-saves .modal-panel.dropping .transfer-hint { color: var(--red); font-weight: 700; }
+
+/* ------------------------------------------------------------- 农事提示 */
+.tips-card {
+  flex: 0 1 auto; min-height: 84px; overflow-y: auto;
+  background: linear-gradient(180deg, rgba(255,255,255,.55), rgba(246,241,230,.35));
+  border: 1px dashed var(--line-2); border-radius: 12px; padding: 10px 14px 11px;
+  font-size: 12.5px; line-height: 1.75; color: var(--ink-soft);
+}
+.tips-head {
+  font-family: var(--font-serif); font-size: 12px; color: var(--gold); letter-spacing: 2px;
+  margin-bottom: 4px;
+}
+.tip-row { position: relative; padding-left: 14px; }
+.tip-row::before { content: '·'; position: absolute; left: 3px; color: var(--line-2); font-weight: 700; }
+.tip-row.good { color: var(--green); }
+.tip-row.warn { color: var(--red); }
+
+/* ------------------------------------------------------------- 庄况一览 */
+.overview {
+  display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px;
+  flex: 0 0 auto; margin-top: auto;
+}
+.ov-card {
+  background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+  padding: 7px 9px 6px; display: flex; flex-direction: column; gap: 2px;
+  box-shadow: var(--shadow);
+}
+.ov-card span { font-size: 10.5px; color: var(--ink-soft); letter-spacing: 1px; }
+.ov-card b {
+  font-size: 14.5px; color: var(--ink); font-variant-numeric: tabular-nums;
+  font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.ov-card b i { font-style: normal; font-size: 10.5px; font-weight: 400; color: var(--ink-soft); margin-left: 2px; }
+.ov-card.ok b { color: var(--green); }
+.ov-card.warn b { color: var(--red); }
+
+/* ------------------------------------------------------------- 月面板 */
+.month-panel { flex: 0 0 auto; background: var(--card); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); }
+.month-report { max-height: 130px; overflow-y: auto; padding: 10px 14px 4px; font-size: 12px; line-height: 1.7; }
+.month-report:empty { display: none; }
+.month-report .mr-row { display: flex; gap: 8px; }
+.month-report .mr-row .mr-tag { flex: 0 0 auto; font-weight: 700; }
+.month-report .mr-in .mr-tag { color: var(--green); }
+.month-report .mr-out .mr-tag { color: var(--red); }
+.month-report .mr-news { color: var(--ink-soft); }
+.month-report .mr-news::before { content: '❖'; margin-right: 6px; color: var(--gold); }
+.month-report .mr-harvest .mr-tag { color: #8a6d1f; }
+.month-actions {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 10px 14px 12px; border-top: 1px dashed var(--line);
+}
+.deadline { font-size: 12px; color: var(--ink-soft); line-height: 1.5; }
+.deadline b { color: var(--red); }
+
+/* ------------------------------------------------------------- 右栏 */
+.tabs { display: flex; border-bottom: 1px solid var(--line); background: var(--paper-2); }
+.tabs button {
+  flex: 1; padding: 11px 0; border: 0; background: transparent; font-size: 13.5px; font-weight: 600;
+  color: var(--ink-soft); letter-spacing: 2px; border-bottom: 2px solid transparent; transition: .15s;
+}
+.tabs button.active { color: var(--ink); border-bottom-color: var(--red); background: var(--card); }
+.tab-body { flex: 1; min-height: 0; overflow-y: auto; padding: 14px; }
+.tab-section { margin-bottom: 20px; }
+.tab-section > h3 {
+  margin: 0 0 10px; font-family: var(--font-serif); font-size: 15px; letter-spacing: 2px;
+  color: var(--ink); display: flex; align-items: center; justify-content: space-between;
+}
+.tab-section > h3 .h3-side { font-family: var(--font); font-size: 12px; letter-spacing: 0; color: var(--ink-soft); font-weight: 400; }
+
+/* 人事 */
+.rent-box { background: var(--paper-2); border-radius: 12px; padding: 12px 14px; margin-bottom: 12px; }
+.rent-box .rent-val { font-size: 22px; font-weight: 800; color: #8a6d1f; font-variant-numeric: tabular-nums; }
+.rent-box .rent-val small { font-size: 12px; font-weight: 400; color: var(--ink-soft); }
+input[type='range'] { width: 100%; accent-color: var(--red); margin: 8px 0 2px; }
+.hint-line { font-size: 11.5px; color: var(--ink-soft); line-height: 1.6; }
+.tenant-card {
+  display: flex; align-items: center; gap: 10px; padding: 9px 11px; border: 1px solid var(--line);
+  border-radius: 11px; margin-bottom: 7px; background: #fff;
+}
+.tenant-card .t-name { font-weight: 700; font-size: 13.5px; min-width: 56px; }
+.tenant-card .t-meta { flex: 1; font-size: 11.5px; color: var(--ink-soft); line-height: 1.55; }
+.loyal-bar { height: 6px; border-radius: 4px; background: var(--paper-2); overflow: hidden; margin-top: 3px; width: 110px; }
+.loyal-bar i { display: block; height: 100%; background: var(--green); }
+.loyal-bar i.low { background: var(--red); }
+.worker-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.count-ctl { display: flex; align-items: center; gap: 8px; }
+.count-ctl b { font-size: 18px; font-variant-numeric: tabular-nums; min-width: 26px; text-align: center; }
+.round-btn {
+  width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--line-2); background: #fff;
+  font-size: 16px; line-height: 1; color: var(--ink);
+}
+.round-btn:hover:not(:disabled) { border-color: var(--gold); background: var(--gold-soft); }
+.round-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+/* 市集 */
+.good-row { display: flex; align-items: center; gap: 8px; padding: 9px 10px; border: 1px solid var(--line); border-radius: 11px; margin-bottom: 7px; background: #fff; }
+.good-row .g-name { width: 44px; font-weight: 700; font-size: 13px; }
+.good-row .g-price { width: 92px; font-size: 12px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.good-row .g-price b { font-size: 14px; color: #8a6d1f; }
+.trend-up { color: var(--red); font-size: 11px; } .trend-down { color: var(--green); font-size: 11px; }
+.good-row .g-hold { width: 58px; font-size: 11.5px; color: var(--ink-soft); text-align: right; }
+.good-row input { width: 62px; padding: 5px 6px; border-radius: 7px; border: 1px solid var(--line-2); font-size: 12px; }
+.money-input { width: 90px; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--line-2); font-size: 13px; }
+.debt-box { background: var(--red-soft); border-radius: 12px; padding: 12px 14px; }
+.debt-box .d-num { font-size: 20px; font-weight: 800; color: var(--red); }
+.debt-box .d-num.ok { color: var(--green); }
+.loan-chip { display: flex; justify-content: space-between; font-size: 12px; padding: 6px 9px; background: #fff; border-radius: 8px; border: 1px solid var(--line); margin-top: 6px; color: var(--ink-soft); }
+
+/* 营建 */
+.build-card { display: flex; gap: 11px; padding: 11px 12px; border: 1px solid var(--line); border-radius: 12px; margin-bottom: 8px; background: #fff; align-items: flex-start; }
+.build-icon {
+  width: 40px; height: 40px; border-radius: 11px; flex: 0 0 auto; display: grid; place-items: center;
+  font-family: var(--font-serif); font-size: 19px; font-weight: 700; color: #fff;
+  background: linear-gradient(150deg, #6d8f6f, #4a7c59);
+}
+.build-icon.gold { background: linear-gradient(150deg, #d3ab55, #b0803a); }
+.build-icon.red { background: linear-gradient(150deg, #c26a55, #a54832); }
+.build-main { flex: 1; min-width: 0; }
+.build-main b { font-size: 14px; }
+.build-main .lv-dots { display: inline-flex; gap: 3px; margin-left: 7px; }
+.lv-dots i { width: 8px; height: 8px; border-radius: 50%; background: var(--line-2); }
+.lv-dots i.on { background: var(--gold); }
+.build-main p { margin: 4px 0 0; font-size: 11.5px; color: var(--ink-soft); line-height: 1.6; }
+.build-side { text-align: right; flex: 0 0 auto; }
+.build-side .cost { font-size: 12px; color: #8a6d1f; margin-bottom: 6px; font-variant-numeric: tabular-nums; }
+
+/* 账本 */
+.chart-box { border: 1px solid var(--line); border-radius: 12px; background: #fff; padding: 10px 6px 4px; }
+.chart-legend { display: flex; gap: 14px; font-size: 11px; color: var(--ink-soft); padding: 4px 10px 8px; }
+.chart-legend i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 4px; }
+.stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-top: 10px; }
+.stat-cell { background: var(--paper-2); border-radius: 10px; padding: 9px 11px; font-size: 12px; color: var(--ink-soft); }
+.stat-cell b { display: block; font-size: 16px; color: var(--ink); margin-top: 2px; font-variant-numeric: tabular-nums; }
+.log-list { display: flex; flex-direction: column; gap: 3px; }
+.log-row { padding: 6px 10px; border-radius: 8px; background: var(--paper-2); font-size: 12px; line-height: 1.6; color: var(--ink-soft); }
+.log-row .lg-m { color: #b0a480; margin-right: 7px; font-variant-numeric: tabular-nums; font-size: 11px; }
+.log-row.in { background: var(--green-soft); color: #2c5c3d; }
+.log-row.out { background: var(--red-soft); color: #7e3322; }
+.log-row.event { background: var(--gold-soft); color: #6d5518; }
+.log-row.harvest { background: #eef3df; color: #4e6426; }
+.ach-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 7px; }
+.ach-cell { padding: 9px 11px; border-radius: 10px; border: 1px solid var(--line); background: #fff; font-size: 12px; }
+.ach-cell b { display: block; font-size: 13px; }
+.ach-cell span { color: var(--ink-soft); font-size: 11px; }
+.ach-cell.locked { opacity: .45; filter: grayscale(1); }
+.ach-cell.unlocked { border-color: var(--gold); background: var(--gold-soft); }
+
+/* ------------------------------------------------------------- 按钮 */
+.btn {
+  padding: 10px 20px; border-radius: 11px; border: 1px solid transparent; font-size: 14px; font-weight: 600;
+  color: #fff; transition: .15s;
+}
+.btn:hover:not(:disabled) { transform: translateY(-1px); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn-primary { background: linear-gradient(150deg, #b5442d, #93341f); box-shadow: 0 4px 12px rgba(147, 52, 31, .3); }
+.btn-ghost { background: #fff; border-color: var(--line-2); color: var(--ink); }
+.btn-gold { background: linear-gradient(150deg, #d3ab55, #b0803a); color: #fff8e8; }
+.btn.green { background: linear-gradient(150deg, #55876a, #3c6a4d); }
+.btn.big { padding: 12px 26px; font-size: 15px; letter-spacing: 2px; }
+.btn.small { padding: 6px 12px; font-size: 12px; }
+
+/* ------------------------------------------------------------- Toast / FX */
+.toast-stack { position: fixed; top: 72px; left: 50%; transform: translateX(-50%); z-index: 90; display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none; }
+.toast {
+  padding: 9px 18px; border-radius: 10px; font-size: 13px; color: var(--ink);
+  background: rgba(255, 253, 247, .96); border: 1px solid var(--line-2);
+  box-shadow: 0 8px 22px rgba(90, 70, 30, .22); animation: toastIn .25s ease; max-width: 70vw;
+}
+.toast.warn { background: var(--red-soft); border-color: rgba(181, 68, 45, .4); }
+.toast.good { background: var(--green-soft); border-color: rgba(74, 124, 89, .4); }
+.toast.gold { background: var(--gold-soft); border-color: var(--gold); }
+.toast.out { animation: toastOut .3s ease forwards; }
+@keyframes toastIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: none; } }
+@keyframes toastOut { to { opacity: 0; transform: translateY(-10px); } }
+.fx-layer { position: fixed; inset: 0; pointer-events: none; z-index: 95; overflow: hidden; }
+.fx-big {
+  position: absolute; top: 40%; left: 50%; transform: translate(-50%,-50%);
+  font-family: var(--font-serif); font-size: 52px; font-weight: 900; letter-spacing: 8px; color: var(--red);
+  text-shadow: 0 4px 0 rgba(0,0,0,.08), 0 10px 30px rgba(90,70,30,.3);
+  animation: boomFx 1s ease forwards;
+}
+@keyframes boomFx {
+  0% { opacity: 0; transform: translate(-50%,-50%) scale(.5); }
+  25% { opacity: 1; transform: translate(-50%,-50%) scale(1.12); }
+  70% { opacity: 1; transform: translate(-50%,-50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%,-50%) scale(1.06); }
+}
+
+/* ------------------------------------------------------------- 弹窗 */
+.modal { position: fixed; inset: 0; z-index: 100; display: none; align-items: center; justify-content: center; padding: 20px; }
+.modal.open { display: flex; }
+.modal-backdrop { position: absolute; inset: 0; background: rgba(50, 40, 20, .5); backdrop-filter: blur(3px); }
+.modal-panel {
+  position: relative; width: min(500px, 100%); max-height: 88vh; display: flex; flex-direction: column;
+  background: var(--card); border-radius: 18px; overflow: hidden;
+  box-shadow: 0 26px 70px rgba(50, 40, 10, .45); animation: modalIn .26s cubic-bezier(.2, 1, .35, 1);
+  border: 1px solid var(--line-2);
+}
+.modal-panel.wide { width: min(720px, 100%); }
+@keyframes modalIn { from { opacity: 0; transform: translateY(18px) scale(.96); } to { opacity: 1; transform: none; } }
+.modal-head {
+  display: flex; align-items: center; justify-content: space-between; padding: 15px 20px;
+  background: linear-gradient(180deg, #f2e9d4, #eadfc2); border-bottom: 1px solid var(--line);
+}
+.modal-head h2 { margin: 0; font-family: var(--font-serif); font-size: 17px; letter-spacing: 2px; }
+.close-btn { width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--line-2); background: rgba(255,255,255,.6); font-size: 19px; line-height: 1; color: var(--ink-soft); }
+.close-btn:hover { background: #fff; color: var(--red); }
+.modal-body { padding: 18px 20px; overflow-y: auto; font-size: 13.5px; line-height: 1.8; color: var(--ink); }
+.modal-body h3 { margin: 16px 0 6px; font-family: var(--font-serif); font-size: 15px; letter-spacing: 1px; color: var(--red); }
+.modal-body h3:first-child { margin-top: 0; }
+.modal-body p { margin: 6px 0; }
+.modal-body .dim, .dim { color: var(--ink-soft); }
+
+/* 事件弹窗 */
+.event-panel { width: min(460px, 100%); padding: 26px 26px 22px; }
+.event-tag {
+  display: inline-block; font-family: var(--font-serif); font-size: 12px; letter-spacing: 4px;
+  color: #fff8e8; background: linear-gradient(150deg, #b5442d, #93341f);
+  padding: 4px 14px; border-radius: 20px; margin-bottom: 12px;
+}
+.event-panel h2 { margin: 0 0 10px; font-family: var(--font-serif); font-size: 22px; letter-spacing: 3px; }
+.event-text { font-size: 14px; line-height: 1.9; color: var(--ink); margin: 0 0 18px; }
+.event-choices { display: flex; flex-direction: column; gap: 9px; }
+.choice-btn {
+  text-align: left; padding: 12px 15px; border-radius: 12px; border: 1px solid var(--line-2);
+  background: #fff; font-size: 14px; color: var(--ink); transition: .15s; line-height: 1.5;
+}
+.choice-btn:hover:not(:disabled) { border-color: var(--gold); background: var(--gold-soft); transform: translateX(3px); }
+.choice-btn:disabled { opacity: .4; cursor: not-allowed; }
+.choice-btn .c-cost { font-size: 12px; color: #8a6d1f; margin-left: 6px; }
+.event-result { text-align: center; }
+.event-result p { font-size: 14px; line-height: 1.9; background: var(--paper-2); border-radius: 12px; padding: 14px; margin-bottom: 14px; }
+
+/* 结算 */
+.result-panel { width: min(470px, 100%); }
+.result-hero { padding: 30px 22px 24px; text-align: center; color: #fff8e8; background: linear-gradient(160deg, #6d8f6f, #3c6a4d); }
+.result-hero.bad { background: linear-gradient(160deg, #a05a48, #7e3322); }
+/* 五级各有一色，语气一致：都是「当下的成色」，不是结局 */
+.result-hero.grade-S { background: linear-gradient(160deg, #b8933f, #83601a); }
+.result-hero.grade-A { background: linear-gradient(160deg, #6d8f6f, #3c6a4d); }
+.result-hero.grade-B { background: linear-gradient(160deg, #6f8f8a, #3f6560); }
+.result-hero.grade-C { background: linear-gradient(160deg, #8d8267, #605640); }
+.result-hero.grade-D { background: linear-gradient(160deg, #8a7c72, #5a4f47); }
+.result-hero.neg { background: linear-gradient(160deg, #9a6a55, #6d4230); }
+.result-hero .rh-grade { font-family: var(--font-serif); font-size: 46px; font-weight: 900; letter-spacing: 0; line-height: 1; text-shadow: 0 3px 0 rgba(0,0,0,.15); }
+.result-hero .rh-title { font-family: var(--font-serif); font-size: 20px; letter-spacing: 4px; margin-top: 8px; }
+.result-hero .rh-sub { font-size: 12.5px; opacity: .88; margin-top: 8px; line-height: 1.7; }
+.result-body { padding: 16px 20px; overflow-y: auto; }
+.kv-grid { display: grid; grid-template-columns: 1fr auto; font-size: 13px; }
+.kv-grid > div { padding: 7px 2px; border-bottom: 1px solid var(--line); }
+.kv-grid > div:nth-child(even) { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+.kv-grid .highlight { color: #8a6d1f; font-size: 15px; }
+.ladder { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin-top: 14px; padding: 8px;
+  border: 1px dashed var(--line-2); border-radius: 10px; background: rgba(255,255,255,.5); }
+.ladder-step { display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 3px 2px; border-radius: 8px;
+  font-size: 10.5px; color: var(--ink-soft); background: rgba(0,0,0,.03); white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; }
+.ladder-step b { font-size: 12.5px; font-weight: 800; color: var(--ink); }
+.ladder-step.on { background: var(--red); color: #fff6ea; font-weight: 700; box-shadow: 0 1px 4px rgba(181,68,45,.3); }
+.ladder-step.on b { color: #fff6ea; }
+.gap-line { margin: 9px 2px 0; font-size: 12.5px; color: var(--ink-soft); line-height: 1.7; }
+.gap-line b { color: var(--red); }
+.result-actions { display: flex; gap: 10px; padding: 14px 20px 18px; }
+.result-actions .btn { flex: 1; }
+
+/* 存档 */
+.save-slot { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; margin-bottom: 9px; background: #fff; }
+.save-slot .s-info { flex: 1; font-size: 12.5px; color: var(--ink-soft); line-height: 1.6; }
+.save-slot .s-info b { font-size: 14px; color: var(--ink); }
+.save-slot .s-actions { display: flex; gap: 6px; }
+.diff-list { display: flex; flex-direction: column; gap: 10px; }
+.diff-card { text-align: left; padding: 14px 16px; border-radius: 13px; border: 1px solid var(--line-2); background: #fff; transition: .15s; }
+.diff-card:hover { border-color: var(--gold); background: var(--gold-soft); transform: translateX(3px); }
+.diff-card b { font-family: var(--font-serif); font-size: 16px; letter-spacing: 2px; margin-right: 8px; }
+.diff-card span { font-size: 12.5px; color: var(--ink-soft); }
+
+/* ------------------------------------------------------------- 响应式 */
+@media (max-width: 1320px) {
+  .res-chip { padding: 3px 6px; font-size: 10px; }
+  .res-chip b { font-size: 12.5px; }
+  .tool-btn { padding: 6px 9px; font-size: 11.5px; }
+  .brand-text p { display: none; }
+}
+@media (max-width: 1270px) {
+  .topbar { flex-wrap: wrap; }
+  .res-strip { order: 3; flex-basis: 100%; justify-content: flex-start; }
+}
+@media (max-width: 1080px) {
+  .brand-text p { display: none; }
+  .layout { padding: 10px 12px 12px; gap: 10px; }
+  .right-col { min-width: 300px; }
+}
+@media (max-width: 880px) {
+  body { overflow: auto; }
+  .app { height: auto; min-height: 100vh; }
+  .layout { flex-direction: column; }
+  .right-col { max-width: none; min-width: 0; }
+  .overview { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .tab-body { max-height: none; }
+  .plot-grid { max-height: none; overflow: visible; }
+  .topbar { flex-wrap: wrap; }
+  .res-strip { order: 3; flex-basis: 100%; justify-content: flex-start; }
+  .left-col { flex: none; }
+  .month-panel { position: sticky; bottom: 0; z-index: 5; }
+}
+@media (max-width: 620px) {
+  .brand-mark { width: 32px; height: 32px; font-size: 18px; }
+  .brand-text h1 { font-size: 16px; }
+  .tool-btn { padding: 7px 9px; font-size: 11.5px; }
+  .res-chip { padding: 4px 8px; font-size: 11px; }
+  .overview { grid-template-columns: repeat(2, 1fr); }
+  .res-chip b { font-size: 13px; }
+  .plot-grid { grid-template-columns: 1fr; }
+  .btn.big { padding: 11px 18px; font-size: 14px; }
+}
+/* 矮屏（笔记本小窗）：整页自然滚动，避免田块被裁切 */
+@media (min-width: 881px) and (max-height: 780px) {
+  body { overflow: auto; }
+  .app { height: auto; min-height: 100vh; }
+  .layout { align-items: flex-start; }
+  .left-col, .right-col { max-height: none; }
+  .plot-grid { max-height: none; overflow: visible; }
+  .right-col { align-self: stretch; }
+}
+
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ================= 顶栏 ================= -->
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark">庄</div>
+      <div class="brand-text">
+        <h1>庄园物语</h1>
+        <p>世代经营 · 一庄兴衰 · <span id="verTag">v10</span></p>
+      </div>
+    </div>
+    <div class="res-strip" id="resStrip"></div>
+    <div class="tools">
+      <button class="tool-btn" id="btnLang" title="Switch to English">EN</button>
+      <button class="tool-btn" id="btnSettle">结算</button>
+      <button class="tool-btn" id="btnSaves">存档</button>
+      <button class="tool-btn" id="btnHelp">帮助</button>
+      <button class="tool-btn" id="btnSound">音效 开</button>
+      <button class="tool-btn primary-ghost" id="btnNew">新局</button>
+    </div>
+  </header>
+
+  <!-- ================= 主体 ================= -->
+  <main class="layout">
+    <section class="left-col">
+      <div class="fields-head">
+        <h2>田庄 <span id="plotsSummary" class="dim"></span></h2>
+        <div class="fields-buy" id="fieldsBuy"></div>
+      </div>
+      <div class="plot-grid" id="plotGrid"></div>
+      <div class="tips-card" id="tips"></div>
+      <div class="overview" id="overview"></div>
+      <div class="month-panel">
+        <div class="month-report" id="monthReport"></div>
+        <div class="month-actions">
+          <div class="deadline" id="deadline"></div>
+          <button class="btn btn-primary big" id="btnNext">下个月 <kbd>Space</kbd></button>
+        </div>
+      </div>
+    </section>
+
+    <aside class="right-col">
+      <nav class="tabs" id="tabs">
+        <button data-tab="people" class="active">人事</button>
+        <button data-tab="market">市集</button>
+        <button data-tab="build">营建</button>
+        <button data-tab="ledger">账本</button>
+      </nav>
+      <div class="tab-body" id="tabBody"></div>
+    </aside>
+  </main>
+
+  <div class="toast-stack" id="toasts"></div>
+  <div class="fx-layer" id="fx"></div>
+</div>
+
+<!-- ================= 事件弹窗 ================= -->
+<div class="modal" id="modal-event">
+  <div class="modal-backdrop"></div>
+  <div class="modal-panel event-panel">
+    <div class="event-tag" id="eventTag">事 件</div>
+    <h2 id="eventTitle"></h2>
+    <p class="event-text" id="eventText"></p>
+    <div class="event-choices" id="eventChoices"></div>
+    <div class="event-result" id="eventResult" hidden>
+      <p id="eventResultText"></p>
+      <button class="btn btn-primary" id="btnEventOk">知道了</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= 结算弹窗 ================= -->
+<div class="modal" id="modal-result">
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-panel result-panel">
+    <div id="resultBody"></div>
+    <div class="result-actions">
+      <button class="btn btn-ghost" id="btnResultLedger">查看账本</button>
+      <button class="btn btn-primary" id="btnResultNew">继续经营</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= 存档弹窗 ================= -->
+<div class="modal" id="modal-saves">
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-panel">
+    <div class="modal-head"><h2>存档</h2><button class="close-btn" data-close>×</button></div>
+    <div class="modal-body">
+      <div class="save-transfer" id="saveTransfer">
+        <button class="mini-btn strong" id="btnExport">导出到文件</button>
+        <button class="mini-btn strong" id="btnImport">从文件导入</button>
+        <input type="file" id="fileImport" accept=".json,application/json,text/plain" hidden>
+      </div>
+      <p class="transfer-hint" id="transferHint">导出的 .json 可拷到别的电脑，用「导入」接手；也可把文件直接拖进此窗。</p>
+      <div class="save-list" id="saveList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= 帮助弹窗 ================= -->
+<div class="modal" id="modal-help">
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-panel wide">
+    <div class="modal-head"><h2>经营要略</h2><button class="close-btn" data-close>×</button></div>
+    <div class="modal-body help-body">
+      <section>
+        <h3>目标</h3>
+        <p>把祖上传下的小庄经营成一方殷实之家，没有期限——十年只是一道坎，过了照旧过日子。家产折银越多，评级越高（S 一方望族 / A 殷实之家 / B 丰衣足食 / C 温饱度日 / D 家道中落）；顶栏「结算」可随时查看当下成色——S/A/B/C/D 五级都只是账面上的成色，任一级都能接着经营，不存在「结束」。即便债台高筑、田产典尽，也只是欠账挂身，庄子不会散场，撑过去又是一条好汉。</p>
+      </section>
+      <section>
+        <h3>四季农时</h3>
+        <p>水稻 4–5 月插秧、9–10 月收割；小麦 9–10 月播种、来年 5–6 月收；棉花 4–5 月种、9–10 月收；桑茶苗木 2–6 月栽下，分别在第 3、4 年起年年出产。错过时节只能等来年。伏旱伤稻、暴雨淹田，水车可保收成；地力靠施肥与休耕维持。</p>
+      </section>
+      <section>
+        <h3>人与钱</h3>
+        <p>佃户出劳力种大田，收成按租率分成——租率高你多得，但佃户忠诚下滑，会消极怠工甚至举家迁走；长工按月付工钱，是桑园茶山的主力。乡望越高越好办事：招佃容易、可借的贷也多。人手不够时，收成自动打折。</p>
+      </section>
+      <section>
+        <h3>市集门道</h3>
+        <p>粮价春贵秋贱：青黄不接的正月到四月卖粮最划算，秋收时节谷贱伤农。买价略高于市价、卖价略低，低买高卖是正道。钱庄可放贷收息（有坏账风险），也可借贷周转（月息 1.2%，田产可作抵押）。</p>
+      </section>
+      <section>
+        <h3>天有不测</h3>
+        <p>每月都有几率遇到事件：蝗灾、伏旱、秋汛、时疫、匪患、佃户恳谈……多数事件有几个选项，花钱消灾往往更稳，但守着银两硬扛也是一条路。事件结果会计入账本。</p>
+      </section>
+      <section>
+        <h3>操作</h3>
+        <p>点「下个月」推进时间（快捷键 <kbd>Space</kbd> / <kbd>Enter</kbd>）。每月自动存档一次；「存档」页可手动存三个档位随时读回，也能把当前局面「导出到文件」，换电脑时用「从文件导入」接手（也可直接把 .json 拖进存档窗）。「结算」随时看评级，「新局」换难度重开。<kbd>Esc</kbd> 关闭弹窗。</p>
+      </section>
+    </div>
+  </div>
+</div>
+
+<!-- ================= 新局弹窗 ================= -->
+<div class="modal" id="modal-newgame">
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-panel">
+    <div class="modal-head"><h2>开新局</h2><button class="close-btn" data-close>×</button></div>
+    <div class="modal-body">
+      <p class="dim">选择出身（当前对局将不保留）：</p>
+      <div class="diff-list" id="diffList"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =========================================================================
+ * 庄园物语 · 静态数据 (data.js)
+ * 作物 / 田地 / 建筑 / 事件库 / 成就 / 人名池
+ * 事件 effect(s) 由引擎注入 this 上下文（提供 log、news 等辅助）
+ * ========================================================================= */
+(function (root, factory) {
+  var api = factory();
+  if (typeof module === 'object' && module.exports) module.exports = api;
+  if (root) root.ManorData = api;
+})(typeof globalThis !== 'undefined' ? globalThis : this, function () {
+  'use strict';
+
+  var SURNAMES = ['张', '王', '李', '赵', '刘', '陈', '杨', '黄', '周', '吴', '徐', '孙', '马', '朱', '胡', '郭', '何', '林', '罗', '郑'];
+  var GIVEN = ['老栓', '二嫂', '阿福', '铁柱', '春妮', '石头', '王氏', '婆婆', '大牛', '三丫', '老蔫', '秋生', '满仓', '来福', '翠花', '长贵', '根生', '杏花', '德顺', '六斤'];
+
+  /* ------------------------------------------------------------- 作物 */
+  // kind: annual 一年生（播种月窗口 → N 月后收获）；perennial 多年生
+  var CROPS = {
+    rice: {
+      id: 'rice', name: '水稻', short: '稻', kind: 'annual', land: 'paddy',
+      sowMonths: [4, 5], grow: 5, water: 2.0, yieldPerMu: 2.8, seedPerMu: 0,
+      labor: 1.0, priceBase: 2.2, unit: '石',
+      desc: '庄里的口粮根本，春种秋收，最怕伏旱。'
+    },
+    wheat: {
+      id: 'wheat', name: '小麦', short: '麦', kind: 'annual', land: 'any',
+      sowMonths: [9, 10], grow: 8, water: 1.0, yieldPerMu: 1.62, seedPerMu: 0,
+      labor: 0.8, priceBase: 1.9, unit: '石',
+      desc: '秋播夏收，跨冬而长，耐旱但产量平平。'
+    },
+    cotton: {
+      id: 'cotton', name: '棉花', short: '棉', kind: 'annual', land: 'any',
+      sowMonths: [4, 5], grow: 5, water: 1.0, yieldPerMu: 0.55, seedPerMu: 0,
+      labor: 1.2, priceBase: 6.5, unit: '石',
+      desc: '经济作物，费工但值钱，布行常年收。'
+    },
+    mulberry: {
+      id: 'mulberry', name: '桑树', short: '桑', kind: 'perennial', land: 'any',
+      sowMonths: [2, 3, 4], grow: 0, firstYield: 2, harvestMonth: 7,
+      yieldPerMu: 0.55, installPerMu: 1.3, labor: 1.5, water: 1.0,
+      priceBase: 15, unit: '石', produceGood: 'silk',
+      desc: '栽下第 3 年起岁岁产丝，前期投入大，细水长流。'
+    },
+    tea: {
+      id: 'tea', name: '茶树', short: '茶', kind: 'perennial', land: 'slope',
+      sowMonths: [2, 3], grow: 0, firstYield: 3, harvestMonth: 4,
+      yieldPerMu: 0.42, installPerMu: 1.7, labor: 1.2, water: 0.8,
+      priceBase: 19, unit: '石',
+      desc: '只宜坡地，第 4 年起采摘，春茶价最高。'
+    }
+  };
+
+  // 「生丝」是货品而非作物：桑园产出记入 silk（不可种植）
+  CROPS.silk = {
+    id: 'silk', name: '生丝', short: '丝', kind: 'good',
+    priceBase: 15, unit: '石', desc: '桑园产出的生丝。'
+  };
+
+  /* ------------------------------------------------------------- 田地 */
+  var LAND = {
+    paddy: { id: 'paddy', name: '水田', pricePerMu: 9, mu: 20, fertName: '沃', cropNote: '宜稻宜桑' },
+    dry: { id: 'dry', name: '旱地', pricePerMu: 5.5, mu: 20, fertName: '薄', cropNote: '宜麦宜棉' },
+    slope: { id: 'slope', name: '坡地', pricePerMu: 3.5, mu: 20, fertName: '瘠', cropNote: '宜茶宜棉' },
+    waste: { id: 'waste', name: '荒地', pricePerMu: 0, mu: 20, fertName: '荒', cropNote: '需开垦' }
+  };
+  var RECLAIM_COST_PER_MU = 2.4;   // 开垦荒地
+  var FERTILIZE_COST = 14;         // 每块施肥
+  var FERTILIZE_GAIN = 12;
+  var TENANT_SETTLE_COST = 32;     // 招佃安置费
+
+  /* ------------------------------------------------------------- 建筑 */
+  var BUILDINGS = [
+    {
+      id: 'granary', name: '义仓', icon: '仓',
+      desc: '扩大仓储上限，并减少存粮霉变。',
+      levels: [
+        { cost: 170, storage: 900, spoilCut: 0.35 },
+        { cost: 330, storage: 2000, spoilCut: 0.55 },
+        { cost: 650, storage: 4200, spoilCut: 0.75 }
+      ]
+    },
+    {
+      id: 'irrigation', name: '水车', icon: '水',
+      desc: '伏旱时保全稻田，整体收成小幅提升。',
+      levels: [
+        { cost: 240, droughtCut: 0.55, yieldBonus: 0.04 },
+        { cost: 480, droughtCut: 0.85, yieldBonus: 0.08 }
+      ]
+    },
+    {
+      id: 'school', name: '蒙学', icon: '学',
+      desc: '庄户子弟识字明理，忠诚与乡望渐涨。',
+      levels: [
+        { cost: 280, loyaltyUp: 0.18, prestigeUp: 0.10 },
+        { cost: 560, loyaltyUp: 0.38, prestigeUp: 0.20 }
+      ]
+    },
+    {
+      id: 'shop', name: '杂货铺', icon: '铺',
+      desc: '在集镇支起铺面，每月有稳定进项。',
+      levels: [
+        { cost: 360, income: 13 },
+        { cost: 720, income: 30 },
+        { cost: 1300, income: 58 }
+      ]
+    },
+    {
+      id: 'guard', name: '护院', icon: '卫',
+      desc: '雇请护院看家，匪患来时免遭大损。',
+      levels: [
+        { cost: 200, protect: 0.6 },
+        { cost: 380, protect: 0.9 }
+      ]
+    },
+    {
+      id: 'hall', name: '祠堂', icon: '祠',
+      desc: '修祠续谱，一族人心归拢，乡望日隆。',
+      levels: [
+        { cost: 320, loyaltyUp: 0.22, prestigeUp: 0.12 },
+        { cost: 620, loyaltyUp: 0.45, prestigeUp: 0.25 }
+      ]
+    },
+    {
+      id: 'clinic', name: '药铺', icon: '药',
+      desc: '延医施药，瘟疫之年可保庄户周全。',
+      levels: [
+        { cost: 420, plagueCut: 0.5 },
+        { cost: 780, plagueCut: 0.8 }
+      ]
+    }
+  ];
+
+  /* ------------------------------------------------------------- 成就 */
+  var ACHIEVEMENTS = [
+    { id: 'first_harvest', name: '初试锋芒', desc: '单次收获超过 100 石' },
+    { id: 'full_store', name: '谷满仓廪', desc: '仓储达到上限' },
+    { id: 'asset_10k', name: '千金之家', desc: '家产折银超过 10000 两' },
+    { id: 'asset_30k', name: '一方殷实', desc: '家产折银超过 30000 两' },
+    { id: 'land_12', name: '广置田产', desc: '名下田产达到 12 块' },
+    { id: 'prestige_80', name: '仁义之乡', desc: '乡望达到 80' },
+    { id: 'loyal_tenants', name: '佃户爱戴', desc: '5 户以上佃户平均忠诚度 80+' },
+    { id: 'usury', name: '放贷生息', desc: '放贷累计净赚 200 两' },
+    { id: 'all_goods', name: '百业并举', desc: '同时存有全部五种货品' },
+    { id: 'all_builds', name: '百废俱兴', desc: '七类建筑各至少一级' },
+    { id: 'silk_tea', name: '丝茶双绝', desc: '丝茶年入合计超过 500 两' },
+    { id: 'no_evict', name: '厚道庄主', desc: '整局未驱逐过任何佃户' }
+  ];
+
+  /* ------------------------------------------------------------- 事件库 */
+  var EVENTS = [
+    {
+      id: 'locust', name: '蝗虫过境', weight: 9, months: [5, 6, 7, 8],
+      when: function (s) { return s.plots.some(function (p) { return p.crop; }); },
+      text: '天边嗡嗡作响，蝗群黑压压地压向庄稼地。佃户们慌了神，都望着你拿主意。',
+      choices: [
+        {
+          label: '重金雇人扑杀（60 两）', can: function (s) { return s.cash >= 60; },
+          effect: function (s) { s.cash -= 60; return '雇了短工昼夜扑打，又烧了几堆烟火，蝗群过境，田里只受了轻微损失。'; }
+        },
+        {
+          label: '燃火诱杀（20 两）', can: function (s) { return s.cash >= 20; },
+          effect: function (s, R) {
+            s.cash -= 20;
+            if (R() < 0.55) return '火堆起了大用场，蝗虫扑火者众，损失不大。';
+            s.plots.forEach(function (p) { if (p.crop && p.cropState.kind === 'annual') p.cropState.stress += 0.18; });
+            return '火烧了半夜，风却转向了，仍有几块田遭了啃咬。';
+          }
+        },
+        {
+          label: '听天由命',
+          effect: function (s) {
+            s.plots.forEach(function (p) {
+              if (!p.crop) return;
+              if (p.cropState.kind === 'annual') p.cropState.stress += 0.3;
+              else p.cropState.perennialHurt = (p.cropState.perennialHurt || 0) + 0.25;
+            });
+            return '蝗群吃了个痛快。佃户们叹气，今年的收成怕是要打折了。';
+          }
+        }
+      ]
+    },
+    {
+      id: 'drought', name: '伏旱连日', weight: 10, months: [6, 7, 8],
+      when: function (s) { return s.lastWeather === 'dry'; },
+      text: '入伏以来滴雨未落，塘底都晒出了裂纹。稻田卷了叶，人人心里发慌。',
+      choices: [
+        {
+          label: '打井掏塘（80 两）', can: function (s) { return s.cash >= 80; },
+          effect: function (s) { s.cash -= 80; s.plots.forEach(function (p) { if (p.cropState && p.cropState.kind === 'annual') p.cropState.stress = Math.max(0, p.cropState.stress - 0.22); }); return '新井出水了，塘也掏深了三尺，田里总算续上了水。'; }
+        },
+        {
+          label: '祈雨（10 两）',
+          effect: function (s, R) {
+            s.cash -= 10;
+            if (R() < 0.3) { s.weatherOverride = 'wet'; return '三日后竟阴云四合，落了一场透雨！乡里都说你心诚。'; }
+            return '戏做了，雨没来。白花了十两香烛钱。';
+          }
+        },
+        { label: '省着用水硬扛', effect: function () { return '你让各户轮番放水，能省一点是一点。'; } }
+      ]
+    },
+    {
+      id: 'flood', name: '秋汛吃紧', weight: 8, months: [7, 8, 9],
+      when: function (s) { return true; },
+      text: '上游连日落雨，河水眼见着往堤顶爬。庄里地势低洼的几块田首当其冲。',
+      choices: [
+        {
+          label: '加固河堤（110 两）', can: function (s) { return s.cash >= 110; },
+          effect: function (s) { s.cash -= 110; s.paddyProtect = true; return '全村劳力上了堤，夯土垒石，水涨堤也高，田保住了。'; }
+        },
+        {
+          label: '备沙袋应急（40 两）',
+          effect: function (s, R) {
+            s.cash -= 40;
+            if (R() < 0.6) return '沙袋垒得及时，漫上来的水被挡了回去。';
+            s.floodHit = true; return '水到底漫了堤，低田泡了几天。';
+          }
+        },
+        {
+          label: '赌它涨不上来',
+          effect: function (s, R) {
+            if (R() < 0.45) return '河水位堪堪停在堤下三寸，好险。';
+            s.floodHit = true; return '半夜里堤开了口子，低洼的田全泡了汤。';
+          }
+        }
+      ]
+    },
+    {
+      id: 'refugees', name: '饥民过境', weight: 8,
+      when: function (s) { return (s.store.rice + s.store.wheat) > 150; },
+      text: '村口来了一伙拖家带口的饥民，面黄肌瘦，望着你家的粮仓直咽唾沫。',
+      choices: [
+        {
+          label: '开仓放粮 60 石', can: function (s) { return (s.store.rice + s.store.wheat) >= 60; },
+          effect: function (s) { s.takeGrain(60); s.prestige = Math.min(100, s.prestige + 7); s.tenants.forEach(function (t) { t.loyalty = Math.min(100, t.loyalty + 9); }); return '施粥三日，饥民磕头而去。四乡八里都传你仁义，佃户干活也更卖力了。'; }
+        },
+        {
+          label: '平价粜粮 100 石', can: function (s) { return (s.store.rice + s.store.wheat) >= 100; },
+          effect: function (s, R) {
+            var g = Math.min(100, s.store.rice + s.store.wheat);
+            var v = g * s.grainPrice() * 0.92;
+            s.takeGrain(g); s.cash += v; s.prestige = Math.min(100, s.prestige + 2);
+            return '按市价九二折粜出 ' + Math.round(g) + ' 石，得银 ' + v.toFixed(1) + ' 两，也算两全。';
+          }
+        },
+        { label: '闭门不纳', effect: function (s) { s.prestige = Math.max(0, s.prestige - 6); return '大门紧闭。饥民在门外骂了半日才散，乡里有人说你为富不仁。'; } }
+      ]
+    },
+    {
+      id: 'neighbor_land', name: '邻庄变卖田地', weight: 7,
+      when: function (s) { return s.cash >= 200; },
+      text: '西边李家庄主赌输了钱，要急售两块水田。中人来说：价钱好商量。',
+      choices: [
+        {
+          label: '买下 2 块水田（约 7 折）', can: function (s) { return s.cash >= s.landPrice('paddy') * 2 * 0.72; },
+          effect: function (s, R) {
+            var cost = 0;
+            for (var i = 0; i < 2; i++) cost += s.buyPlot('paddy', 0.72);
+            return '两块水田到手，共花去 ' + cost.toFixed(1) + ' 两，比行价便宜了三成。';
+          }
+        },
+        {
+          label: '买 1 块旱地（约 6 折）', can: function (s) { return s.cash >= s.landPrice('dry') * 0.62; },
+          effect: function (s) { var c = s.buyPlot('dry', 0.62); return '一块旱地入了册，花去 ' + c.toFixed(1) + ' 两。'; }
+        },
+        { label: '手中无钱，婉拒', effect: function () { return '送走了中人。这样的便宜，错过了也只能怪自家底气不足。'; } }
+      ]
+    },
+    {
+      id: 'grain_surge', name: '春荒粮贵', weight: 7, months: [2, 3, 4],
+      when: function (s) { return s.grainPrice() < 3.4; },
+      text: '青黄不接，县里粮价一日三涨。米行掌柜放话：有多少收多少。',
+      choices: [
+        {
+          label: '趁机粜粮（卖出存粮一半）',
+          can: function (s) { return (s.store.rice + s.store.wheat) >= 40; },
+          effect: function (s) {
+            var g = Math.floor((s.store.rice + s.store.wheat) / 2);
+            var rice = Math.min(s.store.rice, g), wheat = g - rice;
+            var v = rice * s.grainPrice() * 1.15 + wheat * s.grainPrice() * 1.15;
+            s.takeGrain(rice + wheat); s.cash += v;
+            return '高价粜出 ' + g + ' 石，进账 ' + v.toFixed(1) + ' 两。街坊背后骂你发横财。';
+          }
+        },
+        { label: '捂粮惜售', effect: function (s) { s.priceShock = { good: 'grain', mult: 1.35, months: 2 }; return '你按兵不动。粮价果然还要再涨一阵。'; } },
+        { label: '平价售予乡邻', effect: function (s) { var g = Math.min(60, s.store.rice + s.store.wheat); if (g > 0) { var v = g * s.grainPrice() * 0.95; s.takeGrain(g); s.cash += v; s.prestige = Math.min(100, s.prestige + 4); } return '平价粜粮 ' + g + ' 石，乡邻感念，乡望涨了。'; } }
+      ]
+    },
+    {
+      id: 'cloth_order', name: '布行大订单', weight: 7,
+      when: function (s) { return s.store.cotton >= 60; },
+      text: '县城布行的管事亲自登门：今年棉花紧俏，愿出高价包圆。',
+      choices: [
+        {
+          label: '全部出手（加价两成）',
+          effect: function (s) { var q = s.store.cotton; var v = q * s.price('cotton') * 1.2; s.store.cotton = 0; s.cash += v; return '棉花卖空，得银 ' + v.toFixed(1) + ' 两，布行管事满意而去。'; }
+        },
+        {
+          label: '卖一半，留一半等行情',
+          effect: function (s) { var q = Math.floor(s.store.cotton / 2); var v = q * s.price('cotton') * 1.15; s.store.cotton -= q; s.cash += v; return '出手 ' + q + ' 石，得银 ' + v.toFixed(1) + ' 两，余货入仓。'; }
+        },
+        { label: '坐地起价', effect: function (s) { s.relation = Math.max(0, s.relation - 3); return '你咬死高价，布行管事拂袖而去。商路上传出你难打交道的名声。'; } }
+      ]
+    },
+    {
+      id: 'silk_buyer', name: '丝商上门', weight: 7,
+      when: function (s) { return s.store.silk >= 30; },
+      text: '湖州丝商带着银子来了，在堂屋里把茶碗敲得叮当响：今年上等丝缺货。',
+      choices: [
+        {
+          label: '整仓卖给丝商（加价 15%）',
+          effect: function (s) { var q = s.store.silk; var v = q * s.price('silk') * 1.15; s.store.silk = 0; s.cash += v; return '库存 ' + Math.round(q) + ' 石生丝尽数出手，得银 ' + v.toFixed(1) + ' 两。'; }
+        },
+        { label: '只卖一半', effect: function (s) { var q = Math.floor(s.store.silk / 2); var v = q * s.price('silk') * 1.1; s.store.silk -= q; s.cash += v; return '成交 ' + q + ' 石，得银 ' + v.toFixed(1) + ' 两。'; } },
+        { label: '惜售待涨', effect: function (s) { s.priceShock = { good: 'silk', mult: 1.25, months: 2 }; return '你料定丝价还要涨，先稳住没卖。'; } }
+      ]
+    },
+    {
+      id: 'rent_petition', name: '佃户恳求减租', weight: 8,
+      when: function (s) { return s.tenants.some(function (t) { return t.loyalty < 55; }); },
+      text: '几户佃户凑在一起，推了位老者来见你：今年雨水少，收成薄，求庄主减些租子。',
+      choices: [
+        {
+          label: '减租一成（本年）',
+          effect: function (s) { s.rentCut = 0.1; s.tenants.forEach(function (t) { t.loyalty = Math.min(100, t.loyalty + 14); }); s.prestige = Math.min(100, s.prestige + 4); return '你当场应承减租一成。佃户千恩万谢，奔走相告。'; }
+        },
+        {
+          label: '摆一桌酒席安抚（18 两）', can: function (s) { return s.cash >= 18; },
+          effect: function (s) { s.cash -= 18; s.tenants.forEach(function (t) { t.loyalty = Math.min(100, t.loyalty + 7); }); return '酒席上你说了些体己话，佃户们心里熨帖了些。'; }
+        },
+        {
+          label: '租约写定，不能改',
+          effect: function (s) { s.tenants.forEach(function (t) { if (t.loyalty < 60) t.loyalty -= 9; }); return '你搬出租约一条条念了。佃户们默默回去，几个老人摇头叹气。'; }
+        }
+      ]
+    },
+    {
+      id: 'worker_raise', name: '长工讨薪', weight: 7,
+      when: function (s) { return s.workers.count >= 2; },
+      text: '几个长工凑到你面前，搓着手说：如今别家工钱都涨了，咱们的月钱……',
+      choices: [
+        {
+          label: '每月加 0.3 两',
+          effect: function (s) { s.workers.wage += 0.3; s.workerMorale = 1.06; return '加薪!长工们干活的劲头明显足了。'; }
+        },
+        {
+          label: '好言安抚，不加钱',
+          effect: function (s, R) {
+            if (R() < 0.4) { s.workerMorale = 0.9; return '话说了不少，但人心散了一半，这个月活计做得慢。'; }
+            return '你许了秋后一并赏钱，长工们将信将疑地散了。';
+          }
+        },
+        {
+          label: '辞退挑头的',
+          effect: function (s) { if (s.workers.count > 0) s.workers.count--; s.workerMorale = 0.85; s.prestige = Math.max(0, s.prestige - 3); return '挑头的长工卷铺盖走了。剩下的人噤若寒蝉，乡里却有人说你刻薄。'; }
+        }
+      ]
+    },
+    {
+      id: 'sick_tenant', name: '老佃户病重', weight: 6,
+      when: function (s) { return s.tenants.length > 0; },
+      text: '跟着你家的老佃户病倒了，郎中说是劳损过度，得好好将养。',
+      choices: [
+        {
+          label: '出钱延医（45 两）', can: function (s) { return s.cash >= 45; },
+          effect: function (s) { s.cash -= 45; s.tenants.forEach(function (t) { t.loyalty = Math.min(100, t.loyalty + 11); }); s.prestige = Math.min(100, s.prestige + 4); return '郎中三副药下去，老人能下床了。全庄都说你厚道。'; }
+        },
+        {
+          label: '送些粮食调养', can: function (s) { return s.grainPrice() && (s.store.rice + s.store.wheat) >= 15; },
+          effect: function (s) { s.takeGrain(15); s.tenants.forEach(function (t) { t.loyalty = Math.min(100, t.loyalty + 6); }); return '送去两斗米一只鸡。老人一家感念不尽。'; }
+        },
+        { label: '让他家中自便', effect: function (s) { s.tenants.forEach(function (t) { t.loyalty -= 6; }); return '病是拖好了，人心却凉了半截。'; } }
+      ]
+    },
+    {
+      id: 'school_invite', name: '塾师设帐', weight: 6,
+      when: function (s) { return s.cash >= 120 && s.buildings.school < 1; },
+      text: '一位落第的老秀才想在庄上设帐授徒，束脩从优，教蒙童识字。',
+      choices: [
+        {
+          label: '出资兴办蒙学（320 两）', can: function (s) { return s.cash >= 320; },
+          effect: function (s) { s.cash -= 320; s.buildings.school = 1; s.prestige = Math.min(100, s.prestige + 6); return '蒙学开了课，孩童的读书声成了庄里一景。'; }
+        },
+        {
+          label: '捐些束脩（40 两）', can: function (s) { return s.cash >= 40; },
+          effect: function (s) { s.cash -= 40; s.prestige = Math.min(100, s.prestige + 4); s.relation = Math.min(100, s.relation + 2); return '老秀才连连作揖。县里教谕也听说了你的义举。'; }
+        },
+        { label: '眼下无暇顾及', effect: function () { return '你婉言送客。老秀才背着书箱去了别庄。'; } }
+      ]
+    },
+    {
+      id: 'levy', name: '河工摊派', weight: 6, months: [2],
+      when: function (s) { return true; },
+      text: '县衙下帖：春修河堤，按田亩摊派钱工。',
+      choices: [
+        {
+          label: '照数捐钱（55 两）', can: function (s) { return s.cash >= 55; },
+          effect: function (s) { s.cash -= 55; s.relation = Math.min(100, s.relation + 4); return '钱缴得爽快，书办笑脸相送，官府那边记了你一功。'; }
+        },
+        {
+          label: '出劳力抵捐',
+          effect: function (s) { s.tenants.forEach(function (t) { t.loyalty = Math.max(0, t.loyalty - 3); }); s.corveeMonth = true; return '佃户们上了半个月河工，田里的活计耽误了些。'; }
+        },
+        {
+          label: '托故拖欠',
+          effect: function (s) { s.relation = Math.max(0, s.relation - 6); return '你托病没缴。书办冷着脸走了，县里挂了号。'; }
+        }
+      ]
+    },
+    {
+      id: 'fund_scholar', name: '资助学子', weight: 5,
+      when: function (s) { return s.prestige > 40 && s.cash >= 110; },
+      text: '庄户人家的孩子苦读多年，要去县里应试，盘缠短缺，来向你告帮。',
+      choices: [
+        {
+          label: '赠银百两（110 两）', can: function (s) { return s.cash >= 110; },
+          effect: function (s) { s.cash -= 110; s.prestige = Math.min(100, s.prestige + 9); s.relation = Math.min(100, s.relation + 3); return '你亲手把银子交到孩子手上。此子若有所成，你便是他的恩主。'; }
+        },
+        {
+          label: '借给他，不收息',
+          effect: function (s, R) { s.cash -= 60; if (R() < 0.5) { s.prestige = Math.min(100, s.prestige + 5); return '孩子三年后果然中了秀才，连本带利还了钱，逢人便说你仗义。'; } s.prestige = Math.min(100, s.prestige + 2); return '孩子落了榜，在外帮工三年才还上钱。'; }
+        },
+        { label: '婉言回绝', effect: function () { return '你说近来手头也紧。孩子低头去了。'; } }
+      ]
+    },
+    {
+      id: 'bandits', name: '匪患夜袭', weight: 6,
+      when: function (s) { return true; },
+      text: '夜里庄外犬吠大作——有歹人翻墙而入！',
+      choices: [
+        {
+          label: '合力抵抗',
+          effect: function (s, R) {
+            var lv = s.buildings.guard;
+            if (lv >= 1 && R() < 0.55 + lv * 0.2) { s.prestige = Math.min(100, s.prestige + 3); s.tenants.forEach(function (t) { t.loyalty = Math.min(100, t.loyalty + 3); }); return '护院和庄丁拿了两个贼人送官，四乡传你宅院护得好。'; }
+            var loss = 40 + R() * 90;
+            if (s.cash > loss) { s.cash -= loss; return '乱了一夜，被抢走 ' + loss.toFixed(0) + ' 两银钱。'; }
+            var g = Math.min(60, s.store.rice + s.store.wheat); s.takeGrain(g);
+            return '银钱没多少，贼人搬走 ' + Math.round(g) + ' 石粮。';
+          }
+        },
+        {
+          label: '破财免灾',
+          effect: function (s, R) {
+            var loss = 60 + R() * 120;
+            if (s.cash > loss) { s.cash -= loss; return '送上 ' + loss.toFixed(0) + ' 两，贼人扬长而去，倒也没伤人。'; }
+            var g = Math.min(90, s.store.rice + s.store.wheat); s.takeGrain(g);
+            s.tenants.forEach(function (t) { t.loyalty -= 4; });
+            return '家中无现银，被搬走 ' + Math.round(g) + ' 石粮，佃户们抱怨你护不住庄。';
+          }
+        },
+        {
+          label: '报案缉拿（25 两）', can: function (s) { return s.cash >= 25; },
+          effect: function (s, R) {
+            s.cash -= 25; s.relation = Math.min(100, s.relation + 3);
+            if (R() < 0.6) { s.prestige = Math.min(100, s.prestige + 2); return '差役来勤快，追回了些赃物。县里赞你报案及时。'; }
+            return '差役转了一圈没下文，钱花了，贼没抓着。';
+          }
+        }
+      ]
+    },
+    {
+      id: 'bank_offer', name: '钱庄放贷之邀', weight: 6,
+      when: function (s) { return s.cash >= 220; },
+      text: '钱庄朝奉登门：眼下乡间告贷者众，月息两分，劝你放些款生利。',
+      choices: [
+        {
+          label: '放贷 250 两（月息 2 分，半年期）', can: function (s) { return s.cash >= 250; },
+          effect: function (s) { s.cash -= 250; s.loansOut.push({ principal: 250, rate: 0.02, monthsLeft: 6, risk: 0.14 }); return '250 两放了出去，坐等收息。钱庄朝奉笑称你慧眼。'; }
+        },
+        {
+          label: '小放一百试试水', can: function (s) { return s.cash >= 100; },
+          effect: function (s) { s.cash -= 100; s.loansOut.push({ principal: 100, rate: 0.02, monthsLeft: 6, risk: 0.14 }); return '放了 100 两，先看看水深海深。'; }
+        },
+        { label: '生息有道，不作此务', effect: function () { return '你以「庄户人家不图这个」回绝了。朝奉碰了个软钉子。'; } }
+      ]
+    },
+    {
+      id: 'plague', name: '时疫流行', weight: 5, months: [4, 5, 6, 7],
+      when: function (s) { return s.tenants.length + s.workers.count > 2; },
+      text: '邻村起了时疫，已有抬人的。庄里人心惶惶，不敢下田。',
+      choices: [
+        {
+          label: '延医施药、石灰洒道（70 两）', can: function (s) { return s.cash >= 70; },
+          effect: function (s, R) {
+            s.cash -= 70;
+            var lv = s.buildings.clinic;
+            if (lv >= 1 || R() < 0.75) { s.prestige = Math.min(100, s.prestige + 5); return '药汤户户发送，庄里竟无一人染病，四乡称羡。'; }
+            s.loseTenant('时疫夺走了一位老佃户。');
+            return '虽然施药及时，仍有一位佃户没能挺过来。';
+          }
+        },
+        {
+          label: '闭门自守',
+          effect: function (s, R) {
+            if (R() < 0.55) return '庄门紧闭半月，疫气没进庄。';
+            s.loseTenant('时疫还是进了庄，一位佃户病殁。');
+            s.workerMorale = 0.9;
+            return '';
+          }
+        },
+        {
+          label: '听天由命',
+          effect: function (s, R) {
+            var n = R() < 0.4 ? 1 : 2;
+            for (var i = 0; i < n; i++) s.loseTenant('时疫夺走了性命。');
+            s.prestige = Math.max(0, s.prestige - 4);
+            return '疫气蔓延，前后殁了数人。庄里元气大伤。';
+          }
+        }
+      ]
+    },
+    {
+      id: 'gift', name: '婚丧喜事', weight: 7,
+      when: function (s) { return true; },
+      text: '乡里世交家办喜事，下帖请你赴宴。',
+      choices: [
+        {
+          label: '备厚礼（45 两）', can: function (s) { return s.cash >= 45; },
+          effect: function (s) { s.cash -= 45; s.prestige = Math.min(100, s.prestige + 4); s.relation = Math.min(100, s.relation + 2); return '厚礼抬进门，主家面上大有光彩，逢人便夸你。'; }
+        },
+        {
+          label: '随常礼（15 两）', can: function (s) { return s.cash >= 15; },
+          effect: function (s) { s.cash -= 15; s.prestige = Math.min(100, s.prestige + 1); return '礼数周全，宾主尽欢。'; }
+        },
+        { label: '称病不去', effect: function (s) { s.prestige = Math.max(0, s.prestige - 3); return '你托病没去。主家面上无光，背后说了些闲话。'; } }
+      ]
+    },
+    {
+      id: 'mill_offer', name: '油坊合股', weight: 5,
+      when: function (s) { return s.cash >= 380; },
+      text: '集上新开的油坊缺本钱，掌柜邀你入一股：每月坐分红利。',
+      choices: [
+        {
+          label: '入股 320 两', can: function (s) { return s.cash >= 320; },
+          effect: function (s) { s.cash -= 320; s.investments.push({ monthly: 17, monthsLeft: 30, name: '油坊股份' }); return '入了油坊的股，往后每月有一份红钱。'; }
+        },
+        {
+          label: '入股 160 两（红利减半）', can: function (s) { return s.cash >= 160; },
+          effect: function (s) { s.cash -= 160; s.investments.push({ monthly: 8.5, monthsLeft: 30, name: '油坊小股' }); return '入了个小股，细水长流。'; }
+        },
+        { label: '怕血本无归，婉拒', effect: function () { return '你没入。掌柜又找别家去了。'; } }
+      ]
+    },
+    {
+      id: 'official_grain', name: '官府采买', weight: 6,
+      when: function (s) { return (s.store.rice + s.store.wheat) >= 100; },
+      text: '县衙差人来采买军粮，指名要你家仓里的好米。',
+      choices: [
+        {
+          label: '按市价卖给官府 120 石', can: function (s) { return (s.store.rice + s.store.wheat) >= 120; },
+          effect: function (s) { var g = 120; var v = g * s.grainPrice() * 1.05; s.takeGrain(g); s.cash += v; s.relation = Math.min(100, s.relation + 4); return '交割清爽，得银 ' + v.toFixed(1) + ' 两。县里记了你的好。'; }
+        },
+        {
+          label: '趁机抬价三成',
+          effect: function (s) { var g = Math.min(100, s.store.rice + s.store.wheat); var v = g * s.grainPrice() * 1.3; s.takeGrain(g); s.cash += v; s.relation = Math.max(0, s.relation - 5); return '多赚了 ' + (v * 0.3).toFixed(1) + ' 两，但书办黑着脸走的。'; }
+        },
+        { label: '仓里要留种，不卖', effect: function () { return '你以留种为由回绝。差人倒也没为难。'; } }
+      ]
+    },
+    {
+      id: 'tenant_son', name: '佃户之子投效', weight: 6,
+      when: function (s) { return s.tenants.length > 0 && s.workers.count < 8; },
+      text: '佃户家的二小子长大了，老实肯干，想进庄当长工。',
+      choices: [
+        {
+          label: '收下（月钱照旧）',
+          effect: function (s) { s.workers.count++; s.tenants.forEach(function (t) { t.loyalty = Math.min(100, t.loyalty + 4); }); return '后生手脚麻利，他爹在田里干活更卖力了。'; }
+        },
+        {
+          label: '收下，且许他学账房',
+          effect: function (s) { s.workers.count++; s.workers.literati = (s.workers.literati || 0) + 1; s.tenants.forEach(function (t) { t.loyalty = Math.min(100, t.loyalty + 7); }); return '你让他跟着账房先生识字记账。一家子喜出望外。'; }
+        },
+        { label: '庄上人手够了', effect: function (s) { s.tenants.forEach(function (t) { t.loyalty -= 2; }); return '后生悻悻而去。他爹多少有些失落。'; } }
+      ]
+    },
+    {
+      id: 'seedling_deal', name: '苗贩推销', weight: 6, months: [2, 3],
+      when: function (s) { return s.plots.some(function (p) { return !p.crop; }) && s.cash >= 60; },
+      text: '苗贩子挑着担子进庄：上好的桑苗茶苗，今年栽下，来年就是钱。',
+      choices: [
+        {
+          label: '挑块空田种桑（半价）',
+          can: function (s) { return s.cash >= 13; },
+          effect: function (s, R) {
+            var p = s.bestEmptyPlot(['paddy', 'dry', 'slope']);
+            if (!p) return '可惜没有合适的空田。';
+            var cost = p.mu * 1.3 * 0.5; s.cash -= cost; s.plantOn(p, 'mulberry');
+            return '花 ' + cost.toFixed(1) + ' 两把桑苗栽到了' + p.typeName + '上，三年后就是摇钱树。';
+          }
+        },
+        {
+          label: '挑块坡地种茶（半价）',
+          can: function (s) { return s.cash >= 17; },
+          effect: function (s, R) {
+            var p = s.bestEmptyPlot(['slope']);
+            if (!p) return '手里没有空着的坡地，只得作罢。';
+            var cost = p.mu * 1.7 * 0.5; s.cash -= cost; s.plantOn(p, 'tea');
+            return '茶苗入了坡地，花去 ' + cost.toFixed(1) + ' 两。';
+          }
+        },
+        { label: '不看', effect: function () { return '苗贩子又挑着担子去了邻庄。'; } }
+      ]
+    },
+    {
+      id: 'birthday', name: '贵人生辰', weight: 5,
+      when: function (s) { return s.prestige > 45; },
+      text: '县里一位体面人物的寿辰到了，四乡殷实人家都要备礼。',
+      choices: [
+        {
+          label: '备寿礼（90 两）', can: function (s) { return s.cash >= 90; },
+          effect: function (s) { s.cash -= 90; s.prestige = Math.min(100, s.prestige + 5); s.relation = Math.min(100, s.relation + 4); return '寿宴上你被让到了上座。这层关系日后用得着。'; }
+        },
+        {
+          label: '从简（30 两）', can: function (s) { return s.cash >= 30; },
+          effect: function (s) { s.cash -= 30; s.prestige = Math.min(100, s.prestige + 2); return '礼到了，心意也算到了。'; }
+        },
+        { label: '不凑这个热闹', effect: function (s) { s.prestige = Math.max(0, s.prestige - 2); return '你没去。听说赴宴的都在贵人和前挂了号。'; } }
+      ]
+    },
+    {
+      id: 'ancestor', name: '秋祭祭祖', weight: 6, months: [10],
+      when: function (s) { return true; },
+      text: '秋粮归仓，族老们提议操办秋祭，告慰祖先。',
+      choices: [
+        {
+          label: '大办（70 两）', can: function (s) { return s.cash >= 70; },
+          effect: function (s) { s.cash -= 70; s.tenants.forEach(function (t) { t.loyalty = Math.min(100, t.loyalty + 7); }); s.prestige = Math.min(100, s.prestige + 4); return '猪羊齐备、鼓乐喧天，全庄吃了三天好饭。'; }
+        },
+        {
+          label: '简办（25 两）', can: function (s) { return s.cash >= 25; },
+          effect: function (s) { s.cash -= 25; s.tenants.forEach(function (t) { t.loyalty = Math.min(100, t.loyalty + 3); }); return '三牲清酒，礼成。族老点头。'; }
+        },
+        { label: '今年从权，免了', effect: function (s) { s.tenants.forEach(function (t) { t.loyalty -= 4; }); s.prestige = Math.max(0, s.prestige - 3); return '族老们脸色不大好看。'; } }
+      ]
+    },
+    {
+      id: 'dispute', name: '庄头与人争执', weight: 6,
+      when: function (s) { return s.tenants.length > 1; },
+      text: '你的佃户和邻庄人为地界吵了起来，眼看要动手。',
+      choices: [
+        {
+          label: '亲自调解，各让一步',
+          effect: function (s) { s.prestige = Math.min(100, s.prestige + 3); s.tenants.forEach(function (t) { t.loyalty = Math.min(100, t.loyalty + 4); }); return '你把两家人请到一处，量了地、摆了酒，事平了，两边都敬你三分。'; }
+        },
+        {
+          label: '为自家佃户出头（20 两打点）', can: function (s) { return s.cash >= 20; },
+          effect: function (s) { s.cash -= 20; s.tenants.forEach(function (t) { t.loyalty = Math.min(100, t.loyalty + 8); }); s.prestige = Math.max(0, s.prestige - 1); return '你硬邦邦把地界争了回来。自家佃户扬眉吐气，邻庄却记恨上了。'; }
+        },
+        { label: '庄稼人的事让他们自己了断', effect: function (s) { s.tenants.forEach(function (t) { t.loyalty -= 3; }); return '佃户吃了哑巴亏，觉得庄主不为自己撑腰。'; } }
+      ]
+    },
+    {
+      id: 'good_omen', name: '瑞雪兆丰年', weight: 6, months: [12, 1],
+      when: function (s) { return s.lastWeather === 'good' || s.month === 12; },
+      text: '一夜大雪，把庄稼盖得严严实实。老农们都说：这雪下得好，冻死害虫，明年地有劲。',
+      choices: [
+        { label: '难得好兆头', effect: function (s) { s.springBonus = 0.08; return '你给各户多支了些炭钱。乡里都说来年差不了。'; } }
+      ]
+    },
+    {
+      id: 'wanderer', name: '逃荒人投庄', weight: 6,
+      when: function (s) { return s.tenants.length < 8 && s.cash >= 30; },
+      text: '一对逃荒的夫妇在庄门外站了半日，想讨个活路，愿立租约种田。',
+      choices: [
+        {
+          label: '收留（安置费 32 两）',
+          effect: function (s) { s.addTenant(); s.cash -= s.tenantCost(); s.prestige = Math.min(100, s.prestige + 3); return '安置了新佃户。夫妇俩千恩万谢，起早贪黑地干。'; }
+        },
+        {
+          label: '给些干粮打发', can: function (s) { return (s.store.rice + s.store.wheat) >= 10; },
+          effect: function (s) { s.takeGrain(10); s.prestige = Math.min(100, s.prestige + 1); return '给了干粮和水。夫妇俩朝你拜了三拜，继续赶路。'; }
+        },
+        { label: '庄上不留外人', effect: function (s) { s.prestige = Math.max(0, s.prestige - 3); return '你让人把他们送出了庄口。心里多少有点不是滋味。'; } }
+      ]
+    },
+    {
+      id: 'wine_rise', name: '牛市异动', weight: 6,
+      when: function (s) { return true; },
+      text: '集上忽然传闻南边闹了灾，各货行行情一夜之间乱了。',
+      choices: [
+        { label: '静观其变', effect: function (s, R) { var goods = ['cotton', 'silk', 'tea']; var g = goods[Math.floor(R() * 3)]; var up = R() < 0.5; s.priceShock = { good: g, mult: up ? 1.3 : 0.75, months: 2 }; return (up ? g + ' 价应声而涨。' : g + ' 价应声而跌。'); } }
+      ]
+    },
+    {
+      id: 'study_abacus', name: '账房求去', weight: 5,
+      when: function (s) { return (s.workers.count || 0) >= 3 && s.cash >= 60; },
+      text: '跟了你三年的账房先生想告老还乡。',
+      choices: [
+        {
+          label: '厚赠盘缠留他再干两年（60 两）', can: function (s) { return s.cash >= 60; },
+          effect: function (s) { s.cash -= 60; s.accounting = 1.05; return '银子到了位，账房先生红着眼圈又坐回了柜台。账目比先前更清爽。'; }
+        },
+        { label: '好聚好散', effect: function (s) { s.accounting = 0.96; return '你结清了工钱，亲送出庄。新账房还得磨合些时日。'; } }
+      ]
+    }
+  ];
+
+  /* ------------------------------------------------------------- 结局评级 */
+  var RATINGS = [
+    { min: 22000, grade: 'S', title: '一方望族', desc: '田连阡陌，仓廪丰实，县志上要为你记一笔了。' },
+    { min: 10000, grade: 'A', title: '殷实之家', desc: '广有田产，子孙读书有资，乡里称一声「老爷」。' },
+    { min: 4500, grade: 'B', title: '丰衣足食', desc: '守住了家业，年年有余，是个安稳日子。' },
+    { min: 1800, grade: 'C', title: '温饱度日', desc: '家业没起色，好在没败，来日方长。' },
+    { min: 0, grade: 'D', title: '家道中落', desc: '田薄仓空，家声不振，还有翻本的日子。' }
+  ];
+
+  var DIFFICULTIES = {
+    easy: { id: 'easy', name: '殷实起步', cash: 700, grain: 400, tenants: 5, prestige: 40, disasterMult: 0.7, desc: '家底厚实，天灾也少些。' },
+    normal: { id: 'normal', name: '白手持家', cash: 480, grain: 280, tenants: 4, prestige: 30, disasterMult: 1.0, desc: '寻常家业，全凭经营。' },
+    hard: { id: 'hard', name: '衰门重振', cash: 400, grain: 260, tenants: 4, prestige: 22, disasterMult: 1.2, desc: '家道艰难，步步惊心。' }
+  };
+
+  return {
+    SURNAMES: SURNAMES, GIVEN: GIVEN,
+    CROPS: CROPS, LAND: LAND,
+    RECLAIM_COST_PER_MU: RECLAIM_COST_PER_MU,
+    FERTILIZE_COST: FERTILIZE_COST, FERTILIZE_GAIN: FERTILIZE_GAIN,
+    TENANT_SETTLE_COST: TENANT_SETTLE_COST,
+    BUILDINGS: BUILDINGS, ACHIEVEMENTS: ACHIEVEMENTS,
+    EVENTS: EVENTS, RATINGS: RATINGS, DIFFICULTIES: DIFFICULTIES,
+    YEARS: 10
+  };
+});
+
+</script>
+<script>
+/* =========================================================================
+ * 庄园物语 · 经营引擎 (engine.js)
+ * 回合制月度结算；纯逻辑无 DOM，可在 Node 下无头验证。
+ * 浏览器全局 ManorEngine；Node require('./data.js')
+ * ========================================================================= */
+(function (root, factory) {
+  var isNode = typeof module === 'object' && module.exports;
+  var D = isNode ? require('./data.js') : root.ManorData;
+  var api = factory(D);
+  if (isNode) module.exports = api;
+  if (root) root.ManorEngine = api;
+})(typeof globalThis !== 'undefined' ? globalThis : this, function (D) {
+  'use strict';
+
+  var GOODS = ['rice', 'wheat', 'cotton', 'silk', 'tea'];
+  var GOODS_NAME = { rice: '稻谷', wheat: '小麦', cotton: '棉花', silk: '生丝', tea: '茶叶' };
+  var BASE_STORE_CAP = 400;
+  var BUY_SPREAD = 1.04, SELL_SPREAD = 0.96;
+  var DEBT_RATE = 0.012;
+  var LOAN_RATE_DEFAULT = 0.02;
+  var TAX_PER_MU = 0.24;
+  var GRAIN_SEASON = [1.18, 1.24, 1.32, 1.26, 1.08, 0.98, 0.92, 0.88, 0.85, 0.88, 0.92, 1.06];
+  var LUX_SEASON = [1.05, 1.08, 1.12, 1.06, 1.0, 0.98, 0.95, 0.92, 0.96, 1.0, 1.02, 1.04];
+  var BASE_CAP = { rice: 400, wheat: 380, cotton: 1300, silk: 2600, tea: 3200 };
+
+  /* ------------------------------------------------------------ 随机数 */
+  function rand(s) {
+    s._rs = (s._rs * 1664525 + 1013904223) >>> 0;
+    return s._rs / 4294967296;
+  }
+
+  /* ------------------------------------------------------------ 建档 */
+  function makeName(s, used) {
+    for (var tries = 0; tries < 30; tries++) {
+      var n = D.SURNAMES[Math.floor(rand(s) * D.SURNAMES.length)] +
+        D.GIVEN[Math.floor(rand(s) * D.GIVEN.length)];
+      if (!used[n]) { used[n] = 1; return n; }
+    }
+    return '庄户' + Math.floor(rand(s) * 900 + 100);
+  }
+
+  function createGame(opts) {
+    opts = opts || {};
+    var diff = D.DIFFICULTIES[opts.difficulty || 'normal'];
+    var s = {
+      version: 3,
+      difficulty: diff.id,
+      disasterMult: diff.disasterMult,
+      year: 1, month: 1, monthIndex: 1,
+      _rs: (opts.seed || Date.now()) >>> 0,
+      cash: diff.cash,
+      debt: 0,
+      loansOut: [],
+      investments: [],
+      store: { rice: diff.grain, wheat: 0, cotton: 0, silk: 0, tea: 0 },
+      walk: { rice: 1, wheat: 1, cotton: 1, silk: 1, tea: 1, land: 1 },
+      priceShock: null,
+      plots: [],
+      plotSeq: 1,
+      tenants: [],
+      tenantSeq: 1,
+      usedNames: {},
+      workers: { count: 2, wage: 1.2, literati: 0 },
+      rentShare: 0.5,
+      prestige: diff.prestige,
+      relation: 30,
+      buildings: { granary: 0, irrigation: 0, school: 0, shop: 0, guard: 0, hall: 0, clinic: 0 },
+      logs: [],
+      news: [],
+      pendingEvent: null,
+      eventHistory: [],
+      achievements: {},
+      charts: [],
+      evicted: false,
+      usuryProfit: 0,
+      silkTeaYear: 0,
+      harvestBest: 0,
+      lastWeather: 'normal',
+      weatherOverride: null,
+      floodHit: false, paddyProtect: false,
+      rentCut: 0, springBonus: 0, corveeMonth: false,
+      workerMorale: 1, accounting: 1,
+      over: false, result: null,
+      // 玩家行为统计（成就 / 结算用）
+      stats: { harvests: 0, harvestVol: 0, yearHarvest: 0, sales: 0, purchases: 0, buildSpend: 0 }
+    };
+    // 初始田产：2 水田 1 旱地
+    addPlot(s, 'paddy', 52);
+    addPlot(s, 'paddy', 48);
+    addPlot(s, 'dry', 45);
+    for (var i = 0; i < diff.tenants; i++) addTenant(s);
+    log(s, 'info', '康熙年间，你接手了祖上传下的田庄：' + s.plots.length + ' 块田、' +
+      s.tenants.length + ' 户佃户、纹银 ' + s.cash + ' 两。十年为一程，往后的日子看你经营成什么门第。');
+    withHelpers(s);
+    snapshot(s);
+    return s;
+  }
+
+  /* ------------------------------------------------------------ 辅助方法 */
+  function withHelpers(s) {
+    s.rand = function () { return rand(s); };
+    s.price = function (g) { return getPrice(s, g); };
+    s.grainPrice = function () { return getGrainPrice(s); };
+    s.landPrice = function (t) { return getLandPrice(s, t); };
+    s.takeGrain = function (n) {
+      var r = Math.min(s.store.rice, n);
+      s.store.rice -= r;
+      s.store.wheat = Math.max(0, s.store.wheat - (n - r));
+    };
+    s.tenantCost = function () { return D.TENANT_SETTLE_COST; };
+    s.addTenant = function () { return addTenant(s); };
+    s.loseTenant = function (reason) {
+      if (!s.tenants.length) return;
+      var t = s.tenants.splice(Math.floor(rand(s) * s.tenants.length), 1)[0];
+      news(s, '佃户 ' + t.name + ' 家离开了庄子（' + reason + '）');
+    };
+    s.buyPlot = function (type, discount) {
+      var cost = getLandPrice(s, type) * (discount == null ? 1 : discount);
+      s.cash -= cost;
+      var fert = type === 'paddy' ? 50 : (type === 'dry' ? 46 : 40);
+      addPlot(s, type, fert);
+      return cost;
+    };
+    s.bestEmptyPlot = function (types) {
+      var best = null;
+      s.plots.forEach(function (p) {
+        if (p.crop || types.indexOf(p.type) < 0) return;
+        if (!best || p.fertility > best.fertility) best = p;
+      });
+      return best;
+    };
+    s.plantOn = function (p, cropId) {
+      var c = D.CROPS[cropId];
+      p.crop = cropId;
+      p.cropState = {
+        kind: c.kind, sownIndex: s.monthIndex,
+        due: c.kind === 'annual' ? s.monthIndex + c.grow : 0,
+        stress: 0, years: 0, hurt: 0
+      };
+    };
+    return s;
+  }
+
+  function addPlot(s, type, fert) {
+    var p = {
+      id: s.plotSeq++,
+      type: type,
+      typeName: D.LAND[type].name,
+      mu: D.LAND[type].mu,
+      fertility: fert,
+      crop: null,
+      cropState: null,
+      fallow: false
+    };
+    s.plots.push(p);
+    return p;
+  }
+
+  function addTenant(s) {
+    var t = {
+      id: s.tenantSeq++,
+      name: makeName(s, s.usedNames),
+      labor: 2 + Math.floor(rand(s) * 2),
+      loyalty: 45 + Math.round(rand(s) * 20),
+      skill: 0.85 + rand(s) * 0.3,
+      years: 0,
+      want: 0.42 + rand(s) * 0.1
+    };
+    s.tenants.push(t);
+    return t;
+  }
+
+  function log(s, kind, text) {
+    s.logs.push({ m: s.monthIndex, y: s.year, mo: s.month, kind: kind, text: text });
+    if (s.logs.length > 500) s.logs.splice(0, s.logs.length - 500);
+  }
+  function news(s, text) { s.news.push(text); }
+
+  /* ------------------------------------------------------------ 价格 */
+  function getPrice(s, good) {
+    var c = D.CROPS[good];
+    var season = (good === 'rice' || good === 'wheat') ? GRAIN_SEASON[s.month - 1] : LUX_SEASON[s.month - 1];
+    var shock = 1;
+    if (s.priceShock && (s.priceShock.good === good || (s.priceShock.good === 'grain' && (good === 'rice' || good === 'wheat'))))
+      shock = s.priceShock.mult;
+    var p = c.priceBase * season * s.walk[good] * shock;
+    return Math.round(Math.max(c.priceBase * 0.55, Math.min(c.priceBase * 1.9, p)) * 100) / 100;
+  }
+  function getGrainPrice(s) {
+    var total = s.store.rice + s.store.wheat;
+    if (total < 1) return getPrice(s, 'rice');
+    return (s.store.rice * getPrice(s, 'rice') + s.store.wheat * getPrice(s, 'wheat')) / total;
+  }
+  function getLandPrice(s, type) {
+    var base = D.LAND[type].pricePerMu * D.LAND[type].mu;
+    var f = s.walk.land;
+    if (s.lastWeather === 'flood' || s.lastWeather === 'dry') f *= 0.88;
+    return Math.round(base * f * 10) / 10;
+  }
+  function updatePrices(s) {
+    Object.keys(s.walk).forEach(function (k) {
+      var w = s.walk[k] + (rand(s) - 0.5) * 0.09;
+      s.walk[k] = Math.max(0.82, Math.min(1.22, w));
+    });
+    if (s.priceShock) {
+      s.priceShock.months--;
+      if (s.priceShock.months <= 0) s.priceShock = null;
+    }
+  }
+
+  /* ------------------------------------------------------------ 查询 */
+  function storeTotal(s) {
+    return s.store.rice + s.store.wheat + s.store.cotton + s.store.silk + s.store.tea;
+  }
+  function storeCap(s) {
+    var g = s.buildings.granary;
+    var cap = BASE_STORE_CAP;
+    if (g >= 1) cap += D.BUILDINGS[0].levels[g - 1].storage;
+    return cap;
+  }
+  function storeValue(s) {
+    return GOODS.reduce(function (a, g) { return a + s.store[g] * getPrice(s, g); }, 0);
+  }
+  function landValue(s) {
+    return s.plots.reduce(function (a, p) { return a + getLandPrice(s, p.type) * (p.crop && D.CROPS[p.crop].kind === 'perennial' ? 1.25 : 1); }, 0);
+  }
+  function buildingValue(s) {
+    return D.BUILDINGS.reduce(function (a, b) {
+      var lv = s.buildings[b.id], v = 0;
+      for (var i = 0; i < lv; i++) v += b.levels[i].cost;
+      return a + v * 0.6;
+    }, 0);
+  }
+  function calcAsset(s) {
+    return Math.round((s.cash + storeValue(s) + landValue(s) + buildingValue(s) - s.debt) * 10) / 10;
+  }
+  function ratingFor(asset) {
+    var r = D.RATINGS[D.RATINGS.length - 1];
+    for (var i = 0; i < D.RATINGS.length; i++) {
+      if (asset >= D.RATINGS[i].min) { r = D.RATINGS[i]; break; }
+    }
+    return r;
+  }
+  function debtCap(s) { return 150 + s.prestige * 3 + totalMu(s); }
+  function totalMu(s) { return s.plots.reduce(function (a, p) { return a + p.mu; }, 0); }
+  function avgLoyalty(s) {
+    return s.tenants.length ? s.tenants.reduce(function (a, t) { return a + t.loyalty; }, 0) / s.tenants.length : 0;
+  }
+
+  /* ------------------------------------------------------------ 月度结算 */
+  function rollWeather(s) {
+    if (s.weatherOverride) {
+      var w = s.weatherOverride; s.weatherOverride = null;
+      s.lastWeather = w; return w;
+    }
+    var m = s.month, dm = s.disasterMult;
+    var r = rand(s), w;
+    if (m >= 3 && m <= 5) w = r < 0.24 * dm ? 'dry' : (r < 0.76 ? 'normal' : 'good');
+    else if (m >= 6 && m <= 8) {
+      var f = 0.10 * dm, d = 0.27 * dm;
+      w = r < f ? 'flood' : (r < f + d ? 'dry' : (r < 0.92 ? 'normal' : 'good'));
+    } else if (m >= 9 && m <= 11) w = r < 0.09 * dm ? 'flood' : (r < 0.82 ? 'normal' : 'good');
+    else w = r < 0.14 * dm ? 'dry' : (r < 0.88 ? 'normal' : 'good');
+    s.lastWeather = w;
+    return w;
+  }
+
+  function laborSupply(s) {
+    var t = s.tenants.reduce(function (a, x) { return a + x.labor * (x.loyalty > 25 ? 1 : 0.5) * x.skill; }, 0);
+    var w = s.workers.count * (s.workerMorale || 1);
+    return t + w;
+  }
+  function laborDemand(s) {
+    return s.plots.reduce(function (a, p) {
+      if (!p.crop) return a;
+      var c = D.CROPS[p.crop];
+      return a + (c.kind === 'perennial' ? c.labor : c.labor * 0.9);
+    }, 0);
+  }
+  function laborFactor(s) {
+    var demand = laborDemand(s);
+    if (demand <= 0) return 1;
+    var supply = laborSupply(s) * (s.corveeMonth ? 0.85 : 1);
+    return Math.min(1, 0.45 + 0.55 * (supply / demand));
+  }
+
+  function fertFactor(p) { return 0.55 + (p.fertility / 100) * 0.55; }
+  function stressFactor(st) { return 1 - Math.min(0.65, st); }
+
+  function doHarvest(s, p, out) {
+    var c = D.CROPS[p.crop];
+    var st = p.cropState;
+    var good = c.produceGood || p.crop; // 桑园产出记作生丝
+    var irrigation = s.buildings.irrigation >= 1 ? D.BUILDINGS[1].levels[s.buildings.irrigation - 1].yieldBonus : 0;
+    var y = p.mu * c.yieldPerMu * fertFactor(p) * stressFactor(st.stress) *
+      laborFactor(s) * (1 + irrigation) * (1 + (s.springBonus || 0)) * (0.92 + rand(s) * 0.16);
+    y = Math.max(0, y);
+    var owner;
+    if (c.kind === 'annual') {
+      owner = y * Math.max(0.2, s.rentShare - (s.rentCut || 0));
+      p.fertility = Math.max(5, p.fertility - (p.crop === 'rice' ? 10 : 8));
+    } else {
+      owner = y * (1 - Math.min(0.15, s.rentShare - 0.3) * 0.5);
+      st.hurt *= 0.4;
+      p.fertility = Math.max(5, p.fertility - 2);
+    }
+    // 入仓（超出仓容的部分按八五折自动粜出）
+    var total = storeTotal(s), cap = storeCap(s);
+    var overflow = 0, soldFor = 0;
+    if (total + owner > cap) {
+      overflow = total + owner - cap;
+      soldFor = overflow * getPrice(s, good) * 0.85;
+      owner -= overflow;
+      s.cash += soldFor;
+    }
+    s.store[good] += owner;
+    s.stats.harvests++;
+    s.stats.harvestVol += owner;
+    s.stats.yearHarvest = (s.stats.yearHarvest || 0) + owner;
+    if (owner > s.harvestBest) s.harvestBest = owner;
+    if (good === 'silk' || good === 'tea') s.silkTeaYear += owner * getPrice(s, good);
+    out.harvests.push({
+      plot: p.typeName, crop: c.name, vol: Math.round(owner * 10) / 10,
+      overflow: Math.round(overflow), soldFor: Math.round(soldFor * 10) / 10
+    });
+    log(s, 'harvest', p.typeName + '的' + c.name + '收了 ' + Math.round(owner) + ' 石' +
+      (overflow > 0 ? '，仓满溢出 ' + Math.round(overflow) + ' 石按八五折粜出' : ''));
+    if (c.kind === 'annual') { p.crop = null; p.cropState = null; }
+  }
+
+  function advanceMonth(s) {
+    if (s.over) return null;
+    s.news = [];
+    s.corveeMonth = false;
+    s.monthIndex++;
+    s.month = ((s.monthIndex - 1) % 12) + 1;
+    s.year = Math.ceil(s.monthIndex / 12);
+    if (s.month === 1) { s.rentCut = 0; s.springBonus = 0; s.silkTeaYear = 0; s.stats.yearHarvest = 0; s.tenants.forEach(function (t) { t.years++; }); }
+
+    var weather = rollWeather(s);
+    var out = { weather: weather, harvests: [], incomes: [], expenses: [], news: s.news, event: null, report: [] };
+
+    // ---- 天气影响 ----
+    var droughtCut = s.buildings.irrigation >= 1 ? D.BUILDINGS[1].levels[s.buildings.irrigation - 1].droughtCut : 0;
+    s.plots.forEach(function (p) {
+      if (!p.crop || !p.cropState) return;
+      var c = D.CROPS[p.crop];
+      if (weather === 'dry') p.cropState.stress += c.water * 0.10 * (1 - droughtCut);
+      else if (weather === 'flood') p.cropState.stress += 0.12;
+      else if (weather === 'good') p.cropState.stress = Math.max(0, p.cropState.stress - 0.08);
+    });
+    if (weather === 'dry') news(s, '入' + (s.month <= 8 ? '伏' : '冬') + '以来久旱无雨，田土干裂。');
+    if (weather === 'flood') news(s, '连日暴雨，河水漫过滩涂，低田积水。');
+    if (weather === 'good') news(s, '风调雨顺，庄稼长得正好。');
+
+    // ---- 多年生作物 ----
+    s.plots.forEach(function (p) {
+      if (p.crop && p.cropState && p.cropState.kind === 'perennial') {
+        p.cropState.age = (p.cropState.age || 0) + 1;
+        var treeYear = Math.floor(p.cropState.age / 12) + 1;
+        if (s.month === D.CROPS[p.crop].harvestMonth) {
+          if (treeYear >= D.CROPS[p.crop].firstYield) doHarvest(s, p, out);
+          else news(s, D.CROPS[p.crop].name + '还没到出产的年头（第 ' + treeYear + ' 年，第 ' +
+            D.CROPS[p.crop].firstYield + ' 年起出产），再养一年。');
+        }
+      }
+    });
+    // ---- 一年生作物到期收获 ----
+    s.plots.forEach(function (p) {
+      if (p.crop && p.cropState && p.cropState.kind === 'annual' && s.monthIndex >= p.cropState.due) doHarvest(s, p, out);
+    });
+
+    // ---- 人力与工钱 ----
+    var wages = s.workers.count * s.workers.wage;
+    if (wages > 0) { s.cash -= wages; out.expenses.push(['长工工钱', wages]); }
+    var demand = laborDemand(s), supply = laborSupply(s);
+    if (demand > supply + 0.5) news(s, '庄里人手紧，' + demand.toFixed(1) + ' 个活计只有 ' + supply.toFixed(1) + ' 个劳力，收成要打折。');
+
+    // ---- 佃户 ----
+    s.tenants.forEach(function (t) {
+      var drift = (0.5 - s.rentShare) * 1.6 + (s.prestige - 40) * 0.018;
+      if (s.buildings.school >= 1) drift += D.BUILDINGS[2].levels[s.buildings.school - 1].loyaltyUp;
+      if (s.buildings.hall >= 1) drift += D.BUILDINGS[5].levels[s.buildings.hall - 1].loyaltyUp;
+      t.loyalty = Math.max(5, Math.min(100, t.loyalty + drift));
+      if (s.buildings.school >= 1) t.skill = Math.min(1.3, t.skill + 0.004);
+      if (t.loyalty < 28 && rand(s) < (28 - t.loyalty) * 0.012) {
+        s.tenants.splice(s.tenants.indexOf(t), 1);
+        news(s, '佃户 ' + t.name + ' 家不满租事，举家迁走了。');
+        s.prestige = Math.max(0, s.prestige - 2);
+      }
+    });
+
+    // ---- 钱项 ----
+    if (s.buildings.shop >= 1) {
+      var inc = D.BUILDINGS[3].levels[s.buildings.shop - 1].income * s.accounting;
+      s.cash += inc; out.incomes.push(['杂货铺红利', inc]);
+    }
+    s.investments = s.investments.filter(function (iv) {
+      s.cash += iv.monthly; out.incomes.push([iv.name + '分红', iv.monthly]);
+      iv.monthsLeft--;
+      return iv.monthsLeft > 0;
+    });
+    if (s.debt > 0) {
+      var interest = s.debt * DEBT_RATE;
+      s.debt += interest;
+      out.expenses.push(['借贷利息', interest]);
+    }
+    s.loansOut = s.loansOut.filter(function (ln) {
+      var profit = ln.principal * ln.rate;
+      s.cash += profit; out.incomes.push(['放贷利息', profit]);
+      ln.monthsLeft--;
+      if (ln.monthsLeft <= 0) {
+        if (rand(s) < 1 - ln.risk) {
+          s.cash += ln.principal;
+          s.usuryProfit += ln.principal * ln.rate * 6;
+          news(s, '放出的 ' + ln.principal + ' 两连本带利收了回来。');
+        } else {
+          s.usuryProfit -= ln.principal;
+          s.prestige = Math.max(0, s.prestige - 2);
+          news(s, '放出的 ' + ln.principal + ' 两成了坏账，只收回利息。乡里有人说你心黑。');
+        }
+        return false;
+      }
+      return true;
+    });
+
+    // ---- 田赋（每年 11 月）----
+    if (s.month === 11) {
+      var tax = totalMu(s) * TAX_PER_MU * (s.relation >= 60 ? 0.85 : 1);
+      s.cash -= tax;
+      out.expenses.push(['田赋', tax]);
+      log(s, 'out', '缴田赋 ' + tax.toFixed(1) + ' 两' + (s.relation >= 60 ? '（官府关系好，减免一成五）' : ''));
+    }
+
+    // ---- 霉变 ----
+    var spoilCut = s.buildings.granary >= 1 ? D.BUILDINGS[0].levels[s.buildings.granary - 1].spoilCut : 0;
+    var spoiled = 0;
+    ['rice', 'wheat'].forEach(function (g) {
+      var v = s.store[g] * 0.005 * (1 - spoilCut);
+      s.store[g] -= v; spoiled += v;
+    });
+    ['cotton', 'silk', 'tea'].forEach(function (g) {
+      var v = s.store[g] * 0.003 * (1 - spoilCut);
+      s.store[g] -= v; spoiled += v;
+    });
+    if (spoiled > 1) news(s, '仓里霉变了 ' + spoiled.toFixed(0) + ' 石存粮。');
+
+    // ---- 休耕与地力 ----
+    s.plots.forEach(function (p) {
+      if (p.fallow) p.fertility = Math.min(100, p.fertility + 2.5);
+      else if (!p.crop) p.fertility = Math.min(100, p.fertility + 0.6);
+    });
+
+    // ---- 市价 ----
+    updatePrices(s);
+
+    // ---- 随机事件 ----
+    if (!s.pendingEvent && rand(s) < 0.44 * s.disasterMult) {
+      var pool = D.EVENTS.filter(function (e) {
+        if (e.months && e.months.indexOf(s.month) < 0) return false;
+        return !e.when || e.when(s);
+      });
+      if (pool.length) {
+        var tw = pool.reduce(function (a, e) { return a + e.weight; }, 0);
+        var roll = rand(s) * tw;
+        for (var i = 0; i < pool.length; i++) {
+          roll -= pool[i].weight;
+          if (roll <= 0) { s.pendingEvent = { id: pool[i].id, name: pool[i].name }; break; }
+        }
+      }
+    }
+
+    // ---- 结算 ----
+    // 钱庄周转：小额亏空（≤30 两）庄主自行垫付，留待下月收入回补；
+    // 较大亏空先透支（计入借贷），额度用尽则典卖田产抵债；
+    // 田产典尽仍资不抵债：余数转为欠账，庄子不散（无限模式）。
+    if (s.cash < 0 && !s.over) {
+      var need = -s.cash;
+      if (need <= 30) {
+        news(s, '庄主自垫了 ' + need.toFixed(1) + ' 两月度亏空，盼着下月进项。');
+      } else {
+        var room = Math.max(0, debtCap(s) - s.debt);
+        var borrowed = Math.min(need, room);
+        if (borrowed > 0) {
+          s.debt += borrowed; need -= borrowed; s.cash += borrowed;
+          news(s, '钱庄透支垫付 ' + borrowed.toFixed(1) + ' 两，计入借贷，月息 1.2%。');
+          log(s, 'out', '现金不足，钱庄垫付 ' + borrowed.toFixed(1) + ' 两');
+        }
+        if (need > 0) {
+          var soldPlot = 0, gained = 0;
+          while (need > 0 && s.plots.length > 0) {
+            var idx = -1;
+            for (var pi = 0; pi < s.plots.length; pi++) {
+              if (!s.plots[pi].crop && (idx < 0 || s.plots[pi].fertility < s.plots[idx].fertility)) idx = pi;
+            }
+            if (idx < 0) idx = 0;
+            var victim = s.plots.splice(idx, 1)[0];
+            var price = getLandPrice(s, victim.type) * 0.8;
+            s.cash += price; gained += price; need -= price; soldPlot++;
+          }
+          if (soldPlot > 0) {
+            news(s, '债主上门，被迫典卖 ' + soldPlot + ' 块田产抵债（得银 ' + gained.toFixed(1) + ' 两）。');
+            log(s, 'out', '典卖田产 ' + soldPlot + ' 块抵债，得银 ' + gained.toFixed(1) + ' 两');
+            s.prestige = Math.max(0, s.prestige - 3);
+          }
+          if (need > 0) {
+            // 田产典尽仍抵不完：余数记作欠账（月息照滚），庄子不散
+            s.debt += need;
+            s.cash += need;
+            news(s, '再无可典之物，' + need.toFixed(1) + ' 两亏空记作欠账，债主宽限来年。');
+            log(s, 'out', '亏空 ' + need.toFixed(1) + ' 两转为欠账');
+          }
+        }
+      }
+    }
+    // ---- 绝境接济：田产典尽、欠账缠身时，族中长辈出面说合（三年至多一次） ----
+    // 无限模式下没有「败落」这条退场路，得留一条活路，否则庄主会卡死
+    if (!s.plots.length && s.debt > 150 && s.cash < 120 &&
+        (s.monthIndex - (s.lastRescue || -999)) >= 36) {
+      var owed = s.debt;
+      s.debt = 0;
+      s.cash = 80;
+      s.lastRescue = s.monthIndex;
+      s.prestige = Math.max(0, s.prestige - 8);
+      var thin = addPlot(s, 'dry', 32);
+      news(s, '族中长辈出面说合，代偿了 ' + owed.toFixed(0) + ' 两欠账，又赎回一块薄田（' + thin.mu +
+        ' 亩）给你，凑了 80 两盘缠。田没了，人还在，从头再来。');
+      log(s, 'info', '亲族接济：代偿 ' + owed.toFixed(0) + ' 两欠账，赎回薄田 ' + thin.mu + ' 亩，得盘缠 80 两，乡望受损。');
+    }
+    snapshot(s);
+    checkAchievements(s);
+    // 十年期满不再是终局：只落一笔里程碑，庄子照旧经营下去
+    if (!s.decadeMarked && s.monthIndex > D.YEARS * 12) {
+      s.decadeMarked = true;
+      news(s, '十年期满。家业已立，往后的日子还长，尽可放手经营。');
+      log(s, 'info', '十年期满，家产折银约 ' + calcAsset(s) + ' 两（' + ratingFor(calcAsset(s)).title + '），此后不限年期。');
+    }
+    return out;
+  }
+
+  function snapshot(s) {
+    s.charts.push({
+      m: s.monthIndex,
+      asset: calcAsset(s),
+      cash: Math.round(s.cash),
+      grain: Math.round(s.store.rice + s.store.wheat),
+      prestige: Math.round(s.prestige)
+    });
+    if (s.charts.length > 400) s.charts.shift();
+  }
+
+  function checkAchievements(s) {
+    D.ACHIEVEMENTS.forEach(function (a) {
+      if (s.achievements[a.id]) return;
+      var got = false;
+      switch (a.id) {
+        case 'first_harvest': got = s.harvestBest >= 100; break;
+        case 'full_store': got = storeTotal(s) >= storeCap(s) * 0.98; break;
+        case 'asset_10k': got = calcAsset(s) >= 10000; break;
+        case 'asset_30k': got = calcAsset(s) >= 30000; break;
+        case 'land_12': got = s.plots.length >= 12; break;
+        case 'prestige_80': got = s.prestige >= 80; break;
+        case 'loyal_tenants': got = s.tenants.length >= 5 && avgLoyalty(s) >= 80; break;
+        case 'usury': got = s.usuryProfit >= 200; break;
+        case 'all_goods': got = GOODS.every(function (g) { return s.store[g] > 0; }); break;
+        case 'all_builds': got = D.BUILDINGS.every(function (b) { return s.buildings[b.id] >= 1; }); break;
+        case 'silk_tea': got = s.silkTeaYear >= 500; break;
+      }
+      if (got) { s.achievements[a.id] = s.monthIndex; news(s, '【成就达成】' + a.name + ' —— ' + a.desc); }
+    });
+  }
+
+  /* 手动结算：无限模式下随时按当前家产评级，不改变局面 */
+  function manualResult(s) {
+    var asset = calcAsset(s);
+    var r = ratingFor(asset);
+    // 任一评级都不影响继续经营：这里只快照当下成色，什么都不改
+    return {
+      why: 'manual', asset: Math.round(asset), rating: r, continues: true,
+      stats: s.stats, months: s.monthIndex, years: D.YEARS
+    };
+  }
+
+  /* ------------------------------------------------------------ 玩家操作 */
+  function fail(reason) { return { ok: false, reason: reason }; }
+
+  var actions = {
+
+    buyPlot: function (s, type) {
+      if (s.over) return fail('此刻不能这么做');
+      var cost = getLandPrice(s, type);
+      if (s.cash < cost) return fail('银钱不够，需 ' + cost + ' 两');
+      s.cash -= cost;
+      var fert = type === 'paddy' ? 52 : (type === 'dry' ? 46 : 40);
+      var p = addPlot(s, type, fert);
+      log(s, 'out', '购入一块' + D.LAND[type].name + '（' + p.mu + ' 亩），花去 ' + cost + ' 两');
+      return { ok: true, cost: cost };
+    },
+
+    reclaimPlot: function (s) {
+      var cost = D.RECLAIM_COST_PER_MU * D.LAND.dry.mu;
+      if (s.cash < cost) return fail('开垦需 ' + cost + ' 两');
+      s.cash -= cost;
+      var p = addPlot(s, 'dry', 30 + Math.round(rand(s) * 10));
+      log(s, 'out', '开垦荒地一块（' + p.mu + ' 亩），花去 ' + cost + ' 两，地力尚薄');
+      return { ok: true, cost: cost };
+    },
+
+    sellPlot: function (s, plotId) {
+      var idx = s.plots.findIndex(function (p) { return p.id === plotId; });
+      if (idx < 0) return fail('没有这块田');
+      var p = s.plots[idx];
+      if (p.crop) return fail('这块田还种着' + D.CROPS[p.crop].name + '，收了再卖');
+      if (s.plots.length <= 1) return fail('总得留一块田安身');
+      var price = getLandPrice(s, p.type) * 0.9;
+      s.cash += price;
+      s.plots.splice(idx, 1);
+      log(s, 'in', '卖出' + D.LAND[p.type].name + '一块，得银 ' + Math.round(price * 10) / 10 + ' 两');
+      return { ok: true, gain: price };
+    },
+
+    plant: function (s, plotId, cropId) {
+      var p = s.plots.find(function (x) { return x.id === plotId; });
+      if (!p) return fail('没有这块田');
+      if (p.crop) return fail('这块田已种着' + D.CROPS[p.crop].name);
+      var c = D.CROPS[cropId];
+      if (!c) return fail('没有这种作物');
+      if (c.land === 'paddy' && p.type !== 'paddy') return fail('水稻只能种在水田');
+      if (c.land === 'slope' && p.type !== 'slope') return fail(c.name + '只宜种在坡地');
+      if (c.kind === 'annual' && c.sowMonths.indexOf(s.month) < 0)
+        return fail(c.name + '的播种时节是 ' + c.sowMonths.join('、') + ' 月');
+      if (c.kind === 'perennial' && (s.month < 2 || s.month > 6))
+        return fail('桑茶苗木宜在 2–6 月栽种');
+      var cost = c.kind === 'perennial' ? c.installPerMu * p.mu : 0; // 一年生作物佃户自备籽种
+      if (s.cash < cost) return fail('苗木钱需 ' + cost.toFixed(1) + ' 两');
+      s.cash -= cost;
+      p.fallow = false;
+      s.plantOn(p, cropId);
+      log(s, 'out', p.typeName + '种下' + c.name + (cost > 0 ? '，苗木花去 ' + cost.toFixed(1) + ' 两' : '（佃户自备籽种）') +
+        (c.kind === 'perennial' ? '（第 ' + c.firstYield + ' 年起出产）' : ''));
+      return { ok: true, cost: cost };
+    },
+
+    fertilize: function (s, plotId) {
+      var p = s.plots.find(function (x) { return x.id === plotId; });
+      if (!p) return fail('没有这块田');
+      if (p.fertility >= 95) return fail('这块田地力已足');
+      if (s.cash < D.FERTILIZE_COST) return fail('施肥需 ' + D.FERTILIZE_COST + ' 两');
+      s.cash -= D.FERTILIZE_COST;
+      p.fertility = Math.min(100, p.fertility + D.FERTILIZE_GAIN);
+      log(s, 'out', '给一块田上了肥，地力 +' + D.FERTILIZE_GAIN);
+      return { ok: true };
+    },
+
+    toggleFallow: function (s, plotId) {
+      var p = s.plots.find(function (x) { return x.id === plotId; });
+      if (!p) return fail('没有这块田');
+      if (p.crop) return fail('田里还种着庄稼');
+      p.fallow = !p.fallow;
+      return { ok: true, fallow: p.fallow };
+    },
+
+    setRent: function (s, v) {
+      v = Math.round(Math.max(0.30, Math.min(0.60, Number(v))) * 100) / 100;
+      if (v === s.rentShare) return { ok: true };
+      var delta = v - s.rentShare;
+      s.rentShare = v;
+      s.tenants.forEach(function (t) { t.loyalty = Math.max(5, Math.min(100, t.loyalty - delta * 55)); });
+      log(s, 'info', '全庄租率调整为 ' + Math.round(v * 100) + '%');
+      return { ok: true };
+    },
+
+    hireTenants: function (s, n) {
+      n = Math.max(1, Math.min(3, Math.floor(Number(n) || 1)));
+      if (s.tenants.length + n > 9) return fail('庄里至多安置 9 户佃户');
+      var cost = n * D.TENANT_SETTLE_COST;
+      if (s.cash < cost) return fail('安置 ' + n + ' 户需 ' + cost + ' 两');
+      s.cash -= cost;
+      var names = [];
+      for (var i = 0; i < n; i++) names.push(s.addTenant().name);
+      log(s, 'out', '招佃 ' + n + ' 户（' + names.join('、') + '），安置费 ' + cost + ' 两');
+      return { ok: true, cost: cost };
+    },
+
+    evictTenant: function (s, tenantId) {
+      var idx = s.tenants.findIndex(function (t) { return t.id === tenantId; });
+      if (idx < 0) return fail('没有这户佃户');
+      var t = s.tenants[idx];
+      s.tenants.splice(idx, 1);
+      s.evicted = true;
+      s.prestige = Math.max(0, s.prestige - 5);
+      s.tenants.forEach(function (o) { o.loyalty = Math.max(5, o.loyalty - 7); });
+      news(s, '佃户 ' + t.name + ' 家被逐出庄子，乡里议论纷纷。');
+      return { ok: true };
+    },
+
+    hireWorkers: function (s, n) {
+      n = Math.max(1, Math.min(6, Math.floor(Number(n) || 1)));
+      if (s.workers.count + n > 10) return fail('长工至多 10 人');
+      s.workers.count += n;
+      log(s, 'info', '新雇长工 ' + n + ' 人，月薪各 ' + s.workers.wage + ' 两');
+      return { ok: true };
+    },
+
+    fireWorkers: function (s, n) {
+      n = Math.max(1, Math.min(s.workers.count, Math.floor(Number(n) || 1)));
+      s.workers.count -= n;
+      s.workerMorale = Math.max(0.85, s.workerMorale - 0.04);
+      return { ok: true };
+    },
+
+    setWage: function (s, v) {
+      v = Math.round(Math.max(0.8, Math.min(2.5, Number(v))) * 10) / 10;
+      if (v > s.workers.wage) s.workerMorale = Math.min(1.15, s.workerMorale + 0.05);
+      if (v < s.workers.wage) s.workerMorale = Math.max(0.8, s.workerMorale - 0.08);
+      s.workers.wage = v;
+      return { ok: true };
+    },
+
+    buyGood: function (s, good, qty) {
+      if (GOODS.indexOf(good) < 0) return fail('没有这种货');
+      qty = Math.floor(Number(qty) || 0);
+      if (qty <= 0) return fail('请输入数量');
+      var p = getPrice(s, good) * BUY_SPREAD;
+      var cost = qty * p;
+      if (storeTotal(s) + qty > storeCap(s)) return fail('仓装不下：上限 ' + storeCap(s) + ' 石');
+      if (s.cash < cost) return fail('需银 ' + cost.toFixed(1) + ' 两');
+      s.cash -= cost;
+      s.store[good] += qty;
+      s.stats.purchases += cost;
+      log(s, 'out', '买入' + GOODS_NAME[good] + ' ' + qty + ' 石（@' + p.toFixed(2) + '），花去 ' + cost.toFixed(1) + ' 两');
+      return { ok: true, cost: cost };
+    },
+
+    sellGood: function (s, good, qty) {
+      if (GOODS.indexOf(good) < 0) return fail('没有这种货');
+      qty = Math.floor(Number(qty) || 0);
+      if (qty <= 0) return fail('请输入数量');
+      if (s.store[good] < qty) return fail('仓里只有 ' + Math.floor(s.store[good]) + ' 石');
+      var p = getPrice(s, good) * SELL_SPREAD;
+      var gain = qty * p;
+      s.store[good] -= qty;
+      s.cash += gain;
+      s.stats.sales += gain;
+      log(s, 'in', '粜出' + GOODS_NAME[good] + ' ' + qty + ' 石（@' + p.toFixed(2) + '），进账 ' + gain.toFixed(1) + ' 两');
+      return { ok: true, gain: gain };
+    },
+
+    borrow: function (s, amount) {
+      amount = Math.floor(Number(amount) || 0);
+      if (amount <= 0) return fail('请输入数额');
+      if (s.debt + amount > debtCap(s)) return fail('钱庄最多肯放账 ' + debtCap(s) + ' 两（提高乡望可多借）');
+      s.debt += amount;
+      s.cash += amount;
+      log(s, 'in', '向钱庄借贷 ' + amount + ' 两（月息 ' + (DEBT_RATE * 100) + '%）');
+      return { ok: true };
+    },
+
+    repay: function (s, amount) {
+      amount = Math.floor(Number(amount) || 0);
+      if (amount <= 0) return fail('请输入数额');
+      if (s.debt <= 0) return fail('没有欠账');
+      amount = Math.min(amount, s.debt);
+      if (s.cash < amount) return fail('现银不够');
+      s.cash -= amount;
+      s.debt -= amount;
+      log(s, 'out', '偿还钱庄 ' + amount + ' 两');
+      return { ok: true };
+    },
+
+    lend: function (s, amount) {
+      amount = Math.floor(Number(amount) || 0);
+      if (amount < 50) return fail('放贷至少 50 两');
+      if (s.cash < amount) return fail('现银不够');
+      s.cash -= amount;
+      s.loansOut.push({ principal: amount, rate: LOAN_RATE_DEFAULT, monthsLeft: 6, risk: 0.14 });
+      log(s, 'out', '放出贷银 ' + amount + ' 两（月息 2 分，半年期）');
+      return { ok: true };
+    },
+
+    build: function (s, buildingId) {
+      var b = D.BUILDINGS.find(function (x) { return x.id === buildingId; });
+      if (!b) return fail('没有这项营建');
+      var lv = s.buildings[buildingId];
+      if (lv >= b.levels.length) return fail('已经修到头了');
+      var cost = b.levels[lv].cost;
+      if (s.cash < cost) return fail('需银 ' + cost + ' 两');
+      s.cash -= cost;
+      s.buildings[buildingId]++;
+      s.stats.buildSpend += cost;
+      log(s, 'out', b.name + '修到 ' + s.buildings[buildingId] + ' 级，花去 ' + cost + ' 两');
+      return { ok: true, level: s.buildings[buildingId] };
+    },
+
+    resolveEvent: function (s, choiceIdx) {
+      if (!s.pendingEvent) return fail('当前没有待处理的事件');
+      var ev = D.EVENTS.find(function (e) { return e.id === s.pendingEvent.id; });
+      if (!ev) { s.pendingEvent = null; return fail('事件数据异常'); }
+      var ch = ev.choices[choiceIdx];
+      if (!ch) return fail('没有这个选项');
+      if (ch.can && !ch.can(s)) return fail('条件不足');
+      var result = ch.effect(s, s.rand) || '';
+      if (result) log(s, 'event', '【' + ev.name + '】' + result);
+      s.eventHistory.push({ m: s.monthIndex, name: ev.name, choice: ch.label, result: result });
+      s.pendingEvent = null;
+      // 事件 aftermath：河堤加固抵消一次洪涝
+      if (s.floodHit) {
+        s.plots.forEach(function (p) {
+          if (p.crop && p.cropState) p.cropState.stress += (p.type === 'paddy' && s.paddyProtect ? 0 : 0.16);
+        });
+        s.floodHit = false;
+      }
+      s.paddyProtect = false;
+      snapshot(s);
+      checkAchievements(s);
+      return { ok: true, text: result, eventName: ev.name };
+    }
+  };
+
+  /* ------------------------------------------------------------ 存取档 */
+  function saveGame(s) {
+    return JSON.stringify(s);
+  }
+  function loadGame(json) {
+    var s = JSON.parse(json);
+    if (!s || s.version !== 3) return null;
+    // 无限模式：旧存档里若带着「已结束」标记，读回时解封，接着经营
+    s.over = false;
+    s.result = null;
+    return withHelpers(s);
+  }
+
+  return {
+    GOODS: GOODS, GOODS_NAME: GOODS_NAME,
+    createGame: createGame,
+    withHelpers: withHelpers,
+    advanceMonth: advanceMonth,
+    actions: actions,
+    calcAsset: calcAsset, ratingFor: ratingFor, manualResult: manualResult,
+    storeTotal: storeTotal, storeCap: storeCap, storeValue: storeValue,
+    landValue: landValue, buildingValue: buildingValue,
+    getPrice: getPrice, getLandPrice: getLandPrice, getGrainPrice: getGrainPrice,
+    laborSupply: laborSupply, laborDemand: laborDemand,
+    totalMu: totalMu, avgLoyalty: avgLoyalty, debtCap: debtCap,
+    saveGame: saveGame, loadGame: loadGame,
+    YEARS: D.YEARS
+  };
+});
+
+</script>
+<script>
+/* =========================================================================
+ * 庄园物语 · 音效 (audio.js) — Web Audio 实时合成，无外部资源
+ * ========================================================================= */
+(function (root) {
+  'use strict';
+  var ctx = null;
+  var enabled = true;
+
+  function ac() {
+    if (!enabled) return null;
+    if (!ctx) {
+      var AC = root.AudioContext || root.webkitAudioContext;
+      if (!AC) return null;
+      try { ctx = new AC(); } catch (e) { return null; }
+    }
+    if (ctx.state === 'suspended') ctx.resume();
+    return ctx;
+  }
+
+  function tone(freq, dur, type, vol, delay, slideTo) {
+    var a = ac();
+    if (!a) return;
+    var t0 = a.currentTime + (delay || 0);
+    var osc = a.createOscillator(), gain = a.createGain();
+    osc.type = type || 'triangle';
+    osc.frequency.setValueAtTime(freq, t0);
+    if (slideTo) osc.frequency.exponentialRampToValueAtTime(Math.max(40, slideTo), t0 + dur);
+    gain.gain.setValueAtTime(0.0001, t0);
+    gain.gain.exponentialRampToValueAtTime(Math.max(0.0002, vol || 0.07), t0 + 0.012);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    osc.connect(gain); gain.connect(a.destination);
+    osc.start(t0); osc.stop(t0 + dur + 0.02);
+  }
+
+  function noise(dur, vol, delay, freq) {
+    var a = ac();
+    if (!a) return;
+    var t0 = a.currentTime + (delay || 0);
+    var len = Math.floor(a.sampleRate * dur);
+    var buf = a.createBuffer(1, len, a.sampleRate);
+    var data = buf.getChannelData(0);
+    for (var i = 0; i < len; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / len);
+    var src = a.createBufferSource(); src.buffer = buf;
+    var filter = a.createBiquadFilter(); filter.type = 'lowpass'; filter.frequency.value = freq || 900;
+    var gain = a.createGain(); gain.gain.value = vol || 0.1;
+    src.connect(filter); filter.connect(gain); gain.connect(a.destination);
+    src.start(t0);
+  }
+
+  var sounds = {
+    month: function () { tone(430, 0.07, 'sine', 0.04, 0, 360); },
+    coin: function () { tone(920, 0.06, 'sine', 0.06); tone(1180, 0.09, 'sine', 0.05, 0.05); },
+    pay: function () { tone(520, 0.08, 'sine', 0.05, 0, 380); },
+    build: function () { noise(0.14, 0.09, 0, 700); tone(240, 0.16, 'square', 0.05, 0.05, 180); tone(430, 0.1, 'triangle', 0.05, 0.16); },
+    harvest: function () { [523, 659, 784].forEach(function (f, i) { tone(f, 0.24, 'triangle', 0.055, i * 0.07); }); },
+    event: function () { tone(660, 0.3, 'sine', 0.05); tone(490, 0.4, 'sine', 0.045, 0.12); },
+    good: function () { [440, 554, 659].forEach(function (f, i) { tone(f, 0.2, 'sine', 0.05, i * 0.08); }); },
+    bad: function () { tone(300, 0.22, 'sawtooth', 0.05, 0, 190); tone(210, 0.3, 'sine', 0.05, 0.1, 140); },
+    achieve: function () { [523, 659, 784, 1046].forEach(function (f, i) { tone(f, 0.26, 'triangle', 0.06, i * 0.09); }); },
+    win: function () { [523, 659, 784, 1046, 1318].forEach(function (f, i) { tone(f, 0.4, 'triangle', 0.065, i * 0.13); }); },
+    lose: function () { [392, 330, 262, 196].forEach(function (f, i) { tone(f, 0.45, 'sine', 0.06, i * 0.16); }); },
+    error: function () { tone(180, 0.13, 'square', 0.05); }
+  };
+
+  var api = {
+    play: function (name) { if (!enabled) return; var f = sounds[name]; if (f) f(); },
+    setEnabled: function (v) { enabled = !!v; if (enabled) ac(); },
+    unlock: function () { ac(); }
+  };
+  root.ManorSound = api;
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+
+</script>
+<script>
+/* =========================================================================
+ * 庄园物语 · 语言层 (lang.js)
+ * 中文 / English 切换。
+ * 原理：引擎与数据层仍产生中文字符串；展示时经 ManorLang.t() 翻译——
+ *   1) 整句精确匹配 S（事件文本、选项、结果、提示语等）
+ *   2) 句式规则 P（带数字的动态句，按序全局替换，先长后短、先具体后单位）
+ *   3) 静态 HTML 文本节点由 applyDom() 遍历替换（切回中文时还原）
+ *   4) 帮助弹窗整页内容替换（含 <kbd> 等标记）
+ * 展示通道统一：Element.prototype.innerHTML / textContent 已挂翻译钩子，
+ * 因此 ui.js 的渲染代码无需逐一改动。
+ * ========================================================================= */
+(function () {
+  'use strict';
+
+  var LANG_KEY = 'manor_lang_v1';
+  var cur = 'zh';
+  try {
+    var saved = JSON.parse(localStorage.getItem(LANG_KEY) || '{}');
+    if (saved.lang === 'en') cur = 'en';
+  } catch (e) {}
+
+  /* ======================= 整句 / 词汇 精确词典 ======================= */
+  var S = {
+    /* —— 顶栏与静态部件 —— */
+    '庄园物语': 'Manor Tale',
+    '世代经营 · 一庄兴衰': 'A manor saga · rise & fall',
+    '世代经营 · 一庄兴衰 ·': 'A manor saga · rise & fall ·',
+    '庄': '庄',
+    '结算': 'Report', '存档': 'Saves', '帮助': 'Help', '新局': 'New',
+    '音效 开': 'Snd On', '音效 关': 'Snd Off',
+    '人事': 'People', '市集': 'Market', '营建': 'Build', '账本': 'Ledger',
+    '田庄': 'The Manor', '下个月': 'Next Month', '知道了': 'OK',
+    '查看账本': 'View Ledger', '继续经营': 'Keep Playing',
+    '导出到文件': 'Export File', '从文件导入': 'Import File',
+    '保存当前': 'Save Here', '读取': 'Load', '删除': 'Delete',
+    '经营要略': 'Playbook', '开新局': 'New Game',
+    '导出的 .json 可拷到别的电脑，用「导入」接手；也可把文件直接拖进此窗。':
+      'The exported .json works on any computer — import it there, or drag the file straight into this window.',
+    '事 件': 'EVENT',
+    '事 件 · 第 1 年 1 月': 'EVENT · Yr 1 Mo 1',
+    /* —— 资源条 —— */
+    '时间': 'Date', '银两': 'Silver', '存粮': 'Granary', '田产': 'Land',
+    '人丁': 'People', '劳力': 'Labor', '乡望': 'Renown', '官府': 'Officials', '借贷': 'Debt',
+    /* —— 作物 —— */
+    '水稻': 'Rice', '小麦': 'Wheat', '棉花': 'Cotton', '桑树': 'Mulberry', '茶树': 'Tea',
+    '生丝': 'Raw silk', '稻谷': 'Rice', '茶叶': 'Tea leaves',
+    '稻': 'R', '麦': 'W', '棉': 'C', '桑': 'M', '茶': 'T', '丝': 'S',
+    '庄里的口粮根本，春种秋收，最怕伏旱。': 'The estate\u2019s staple food. Sown in spring, reaped in autumn; drought is its bane.',
+    '秋播夏收，跨冬而长，耐旱但产量平平。': 'Sown in autumn, reaped in summer; winters over and endures drought, but yields are modest.',
+    '经济作物，费工但值钱，布行常年收。': 'A cash crop — labor-hungry but profitable; the cloth house always buys.',
+    '栽下第 3 年起岁岁产丝，前期投入大，细水长流。': 'Yields silk yearly from the 3rd year. Heavy up-front cost, steady returns.',
+    '只宜坡地，第 4 年起采摘，春茶价最高。': 'Hillside only. Pickable from the 4th year; spring tea fetches the best price.',
+    '桑园产出的生丝。': 'Raw silk from the mulberry garden.',
+    /* —— 田地 —— */
+    '水田': 'Paddy field', '旱地': 'Dry field', '坡地': 'Hillside', '荒地': 'Wasteland',
+    '沃': 'Rich', '薄': 'Thin', '瘠': 'Lean', '荒': 'Barren',
+    '宜稻宜桑': 'rice & mulberry', '宜麦宜棉': 'wheat & cotton', '宜茶宜棉': 'tea & cotton', '需开垦': 'needs reclaiming',
+    /* —— 建筑 —— */
+    '义仓': 'Granary', '水车': 'Waterwheel', '蒙学': 'Village school', '杂货铺': 'General store',
+    '护院': 'Manor guard', '祠堂': 'Ancestral hall', '药铺': 'Apothecary',
+    '扩大仓储上限，并减少存粮霉变。': 'Raises storage cap and reduces spoilage.',
+    '伏旱时保全稻田，整体收成小幅提升。': 'Saves paddies in drought; small yield bonus overall.',
+    '庄户子弟识字明理，忠诚与乡望渐涨。': 'Manor children learn letters; loyalty and renown slowly rise.',
+    '在集镇支起铺面，每月有稳定进项。': 'A shopfront in town; steady income every month.',
+    '雇请护院看家，匪患来时免遭大损。': 'Guards keep the peace; blunts bandit losses.',
+    '修祠续谱，一族人心归拢，乡望日隆。': 'Restore the hall, gather the clan; renown grows.',
+    '延医施药，瘟疫之年可保庄户周全。': 'Keeps a physician; shields the people in plague years.',
+    /* —— 成就 —— */
+    '初试锋芒': 'First Fruits', '谷满仓廪': 'A Full Granary', '千金之家': 'House of Silver',
+    '一方殷实': 'Local Prosperity', '广置田产': 'Wide Acres', '仁义之乡': 'Beloved Squire',
+    '佃户爱戴': 'Cherished by Tenants', '放贷生息': 'Silver at Interest', '百业并举': 'All Trades',
+    '百废俱兴': 'Great Works', '丝茶双绝': 'Silk & Tea', '厚道庄主': 'The Kind Lord',
+    '单次收获超过 100 石': 'Harvest over 100 shi at once',
+    '仓储达到上限': 'Fill the granary to its cap',
+    '家产折银超过 10000 两': 'Estate over 10,000 taels',
+    '家产折银超过 30000 两': 'Estate over 30,000 taels',
+    '名下田产达到 12 块': 'Hold 12 plots of land',
+    '乡望达到 80': 'Renown reaches 80',
+    '5 户以上佃户平均忠诚度 80+': '5+ tenant households averaging 80+ loyalty',
+    '放贷累计净赚 200 两': 'Net 200 taels from lending',
+    '同时存有全部五种货品': 'Hold all five goods at once',
+    '七类建筑各至少一级': 'Every building at least level 1',
+    '丝茶年入合计超过 500 两': 'Silk & tea earn 500+ taels in a year',
+    '整局未驱逐过任何佃户': 'Never evict a tenant',
+    /* —— 评级 —— */
+    '一方望族': 'Local Dynasty', '殷实之家': 'Gentry Household', '丰衣足食': 'Well-Fed & Clothed',
+    '温饱度日': 'Getting By', '家道中落': 'Strained Means',
+    '田连阡陌，仓廪丰实，县志上要为你记一笔了。': 'Fields upon fields, full granaries — the county annals will record your name.',
+    '广有田产，子孙读书有资，乡里称一声「老爷」。': 'Broad lands, schooling for your heirs; the countryside calls you "squire".',
+    '守住了家业，年年有余，是个安稳日子。': 'The estate holds, with surplus most years. A settled life.',
+    '家业没起色，好在没败，来日方长。': 'No growth yet, but no ruin either — long days ahead.',
+    '田薄仓空，家声不振，还有翻本的日子。': 'Thin fields, empty granary — but the days of comeback are not over.',
+    /* —— 难度 —— */
+    '殷实起步': 'Genteel Start', '白手持家': 'Self-Made', '衰门重振': 'Fallen House',
+    '家底厚实，天灾也少些。': 'A solid inheritance; gentler disasters.',
+    '寻常家业，全凭经营。': 'An ordinary hand — all rests on your management.',
+    '家道艰难，步步惊心。': 'Hard times; every step a test.',
+    /* —— 存档 —— */
+    '存档一': 'Slot 1', '存档二': 'Slot 2', '存档三': 'Slot 3', '自动存档': 'Autosave',
+    /* —— 帮助标题 —— */
+    '目标': 'Goal', '四季农时': 'Farm Calendar', '人与钱': 'People & Money',
+    '市集门道': 'Market Craft', '天有不测': 'Misfortune', '操作': 'Controls',
+    /* —— 提示/toast —— */
+    '新的一局开始了。点「帮助」查看经营要略。': 'A new game begins. Open "Help" for the playbook.',
+    '存档无法读取': 'Save unreadable', '操作无效': 'Invalid action',
+    '还没有开局，无档可导出': 'No game yet — nothing to export',
+    '货栈': 'Warehouse', '钱庄': 'Money house', '成就': 'Achievements',
+    '已导出：': 'Exported: ', '导出失败：': 'Export failed: ',
+    '不是有效的 JSON 文件': 'Not a valid JSON file',
+    '这不像是《庄园物语》的存档': 'This is not a Manor Tale save file',
+    '存档内容已损坏': 'Save data is corrupted',
+    '文件太大，不像是存档': 'File too large to be a save',
+    '文件读不出来，换个文件试试': 'Could not read the file — try another',
+    '十年期满 · 家业已立。此后不限年期，随时可点「结算」查看评级。':
+      'A decade has passed and the estate stands. No time limit from here — open "Report" anytime to see your grade.',
+    '事情就这么过去了。': 'And so it passed.',
+    '此刻不能这么做': 'Not right now', '条件不足': 'Conditions not met',
+    '没有这块田': 'No such plot', '没有这户佃户': 'No such tenant',
+    '没有这种作物': 'No such crop', '没有这种货': 'No such good',
+    '没有这项营建': 'No such building', '没有这个选项': 'No such choice',
+    '没有欠账': 'No debt outstanding', '现银不够': 'Not enough cash on hand',
+    '总得留一块田安身': 'You must keep at least one plot to live on',
+    '水稻只能种在水田': 'Rice grows only in paddies',
+    '桑茶苗木宜在 2–6 月栽种': 'Mulberry & tea saplings go in from Feb to Jun',
+    '田里还种着庄稼': 'Crops still stand in that field',
+    '这块田地力已足': 'That plot\u2019s fertility is already full',
+    '长工至多 10 人': 'At most 10 hired hands',
+    '庄里至多安置 9 户佃户': 'The manor houses at most 9 tenant households',
+    '放贷至少 50 两': 'Lend at least 50 taels',
+    '已经修到头了': 'Already fully built',
+    '请输入数量': 'Enter a quantity', '请输入数额': 'Enter an amount',
+    '事件数据异常': 'Event data error', '当前没有待处理的事件': 'No pending event',
+    /* —— 月报/动态文案 —— */
+    '连日暴雨，河水漫过滩涂，低田积水。': 'Days of rain: the river tops the flats; low fields are waterlogged.',
+    '风调雨顺，庄稼长得正好。': 'Fair winds and timely rain — the crops thrive.',
+    '入伏以来久旱无雨，田土干裂。': 'No rain since high summer began; the soil is cracked.',
+    '入冬以来久旱无雨，田土干裂。': 'No rain since winter began; the soil is cracked.',
+    '十年期满。家业已立，往后的日子还长，尽可放手经营。':
+      'The decade is out and the estate stands. Long days yet — manage freely.',
+    '这是当下的家业成色，不是结局——S 到 D 任何一级都能接着经营，点「继续经营」或直接关窗，庄子照旧过下去。':
+      'This is your estate as it stands — not an ending. Any grade, S to D, can keep playing: press "Keep Playing" or simply close this window.',
+    '已是最高门第，且看这份家业能守多久。': 'The highest standing already — see how long you keep it.',
+    '庄里没有佃户了，田要荒了。快招佃！': 'No tenants left — the fields will run to weed. Recruit now!',
+    '租率越高收成越多，但佃户忠诚下降：低于 28 会消极怠工，甚至举家迁走。灾年事件可临时减免。':
+      'Higher rent yields more grain, but loyalty falls: below 28 tenants slack off or leave. Disaster events can grant temporary relief.',
+    '工钱给足，长工做事更麻利；苛待则效率下降。桑园茶山劳力需求大，全靠长工和佃户撑着。':
+    'Pay hands well and they work briskly; stinginess slows them. Mulberry & tea need much labor — hands and tenants carry it.',
+    '青黄不接时粮贵，秋收后谷贱；买价略高于市价，卖价略低——低买高卖是正经门道。':
+    'Grain is dear before harvest, cheap after. Buy a bit above market, sell a bit below — buy low, sell high; that is the honest trade.',
+    '借贷月息 1.2%，按田产与乡望计授信；月终若现银不足，钱庄会自动垫付（计入欠账）。':
+    'Loans run 1.2% monthly; credit scales with land and renown. If cash runs short at month\u2019s end, the money house advances it (added to debt).',
+    '下个月后开始记录家产曲线。': 'The estate curve begins next month.',
+    '尚无记事。': 'Nothing recorded yet.',
+    '全庄租率调整为 ': 'Estate rent share set to ',
+    '休耕养地': 'Fallowing', '休耕中，地力缓缓回升': 'Fallowing — fertility slowly recovers',
+    '闲置 · ': 'Idle · ',
+    '— 播种 / 栽种 —': '— Sow / Plant —',
+    '籽种佃户自备': 'tenants provide seed',
+    '满级': 'Max', '已臻完备': 'Fully built',
+    '租率': 'Rent share', '月薪': 'Monthly wage', '忠诚': 'Loyalty', '地力 ': 'Fertility ',
+    '% 归庄主': '% to the lord',
+    '招佃一户（32 两）': 'Recruit a tenant (32 taels)',
+    '数量': 'Qty', '数额（两）': 'Amount (taels)',
+    '买': 'Buy', '卖': 'Sell', '逐出': 'Evict', '休耕': 'Fallow', '复耕': 'Recultivate',
+    '兴造': 'Build', '借入': 'Borrow', '偿还': 'Repay', '卖田': 'Sell plot', '施肥': 'Fertilize',
+    '收': 'Harv', '入': 'In', '出': 'Out',
+    '家产折银': 'Estate', '本年收获': 'Harvest (yr)', '仓储余量': 'Granary free',
+    '劳力供需': 'Labor s/d', '上月支止': 'Net last mo',
+    '农事节令': 'Seasons', '庄中记事': 'Chronicle', '家产曲线': 'Estate curve',
+    '累计收获': 'Total harvested', '售粮所得': 'Grain sales', '购入支出': 'Purchases',
+    '经历事件': 'Events faced', '达成成就': 'Achievements', '名下田产': 'Land held', '经营月数': 'Months run',
+    '现银': 'Cash', '成就': 'Achievements',
+    '长工工钱': 'Hand wages', '杂货铺红利': 'Store dividends', '借贷利息': 'Loan interest',
+    '放贷利息': 'Lending interest', '田赋': 'Land tax',
+    '油坊股份': 'Oil-press shares', '油坊小股': 'Minor oil shares',
+    '达成': 'Done', '十年': '10 yrs', '落成': 'Built',
+    '庄户人家不图这个': 'Farm folk don\u2019t chase that trade',
+
+    /* —— 事件名 —— */
+    '蝗虫过境': 'Locusts Descend', '伏旱连日': 'Dog-Day Drought', '秋汛吃紧': 'Autumn Floods Rise',
+    '饥民过境': 'Famine Refugees Pass', '邻庄变卖田地': 'A Neighbor Sells Land', '春荒粮贵': 'Spring Dearth, Dear Grain',
+    '布行大订单': 'A Big Cloth Order', '丝商上门': 'The Silk Buyer Calls', '佃户恳求减租': 'Tenants Beg Rent Relief',
+    '长工讨薪': 'Hands Ask a Raise', '老佃户病重': 'An Old Tenant Falls Ill', '塾师设帐': 'A Teacher Offers School',
+    '河工摊派': 'Levy for River Works', '资助学子': 'Sponsor a Scholar', '匪患夜袭': 'Bandits in the Night',
+    '钱庄放贷之邀': 'The Money House Invites', '时疫流行': 'Epidemic Spreads', '婚丧喜事': 'Weddings & Funerals',
+    '油坊合股': 'Oil-Press Partnership', '官府采买': 'The Yamen Buys Grain', '佃户之子投效': 'A Tenant\u2019s Son Seeks Work',
+    '苗贩推销': 'The Seedling Peddler', '贵人生辰': 'A Patron\u2019s Birthday', '秋祭祭祖': 'Autumn Rite to the Ancestors',
+    '庄头与人争执': 'Boundary Quarrel', '瑞雪兆丰年': 'Snow Portends Plenty', '逃荒人投庄': 'Fugitives Seek Shelter',
+    '牛市异动': 'Market Whispers', '账房求去': 'The Bookkeeper Wishes to Leave',
+
+    /* —— 事件文本 —— */
+    '天边嗡嗡作响，蝗群黑压压地压向庄稼地。佃户们慌了神，都望着你拿主意。':
+      'A droning hum fills the sky as a black cloud of locusts bears down on the crops. The tenants panic, all eyes on you.',
+    '入伏以来滴雨未落，塘底都晒出了裂纹。稻田卷了叶，人人心里发慌。':
+      'Not a drop since high summer began; the pond beds have cracked. Rice leaves curl, and every heart is uneasy.',
+    '上游连日落雨，河水眼见着往堤顶爬。庄里地势低洼的几块田首当其冲。':
+      'Rain upstream day after day; the river climbs visibly toward the levee. Your lowest-lying fields stand first in its path.',
+    '村口来了一伙拖家带口的饥民，面黄肌瘦，望着你家的粮仓直咽唾沫。':
+      'A band of famine refugees, families in tow, has reached the village gate — gaunt and sallow, eyes fixed on your granary.',
+    '西边李家庄主赌输了钱，要急售两块水田。中人来说：价钱好商量。':
+      'The lord of the Li manor to the west gambled away his money and must sell two paddy fields at once. The broker says: price negotiable.',
+    '青黄不接，县里粮价一日三涨。米行掌柜放话：有多少收多少。':
+      'The lean months bite and grain prices climb thrice a day. The rice merchant declares: he will buy all you have.',
+    '县城布行的管事亲自登门：今年棉花紧俏，愿出高价包圆。':
+      'The cloth house\u2019s manager comes in person: cotton is scarce this year, and he\u2019ll pay a premium for your whole stock.',
+    '湖州丝商带着银子来了，在堂屋里把茶碗敲得叮当响：今年上等丝缺货。':
+      'A silk merchant from Huzhou arrives with silver, tapping his teacup in your hall: fine silk is short this year.',
+    '几户佃户凑在一起，推了位老者来见你：今年雨水少，收成薄，求庄主减些租子。':
+      'Several tenant households have chosen an elder to speak: little rain this year, thin harvests — they beg the lord to ease the rent.',
+    '几个长工凑到你面前，搓着手说：如今别家工钱都涨了，咱们的月钱……':
+      'A few hired hands stand before you, hands wringing: other estates have raised wages, and our monthly pay\u2026',
+    '跟着你家的老佃户病倒了，郎中说是劳损过度，得好好将养。':
+      'An old tenant who has served your house long has fallen ill. The physician says overwork — he needs proper rest and care.',
+    '一位落第的老秀才想在庄上设帐授徒，束脩从优，教蒙童识字。':
+      'An old scholar who failed the exams wishes to open a school on the manor, teaching the children their letters for a modest stipend.',
+    '县衙下帖：春修河堤，按田亩摊派钱工。':
+      'A notice from the county yamen: spring repairs on the river levee; each household pays by acreage in coin or labor.',
+    '庄户人家的孩子苦读多年，要去县里应试，盘缠短缺，来向你告帮。':
+      'A farmer\u2019s child, long at his books, is off to the county exams and short of traveling money — he comes to ask your help.',
+    '夜里庄外犬吠大作——有歹人翻墙而入！':
+      'Dogs erupt in furious barking beyond the walls in the night — intruders are over the wall!',
+    '钱庄朝奉登门：眼下乡间告贷者众，月息两分，劝你放些款生利。':
+      'The money house\u2019s clerk calls: many in the countryside are begging for loans just now, two percent a month — lend, and let silver breed silver.',
+    '邻村起了时疫，已有抬人的。庄里人心惶惶，不敢下田。':
+      'An epidemic has broken out in the next village; the dead are already being carried out. Your people are afraid to go to the fields.',
+    '乡里世交家办喜事，下帖请你赴宴。':
+      'An old family friend of the countryside holds a celebration and sends an invitation to the feast.',
+    '集上新开的油坊缺本钱，掌柜邀你入一股：每月坐分红利。':
+      'The new oil press in town is short of capital; the manager invites you to buy a share and draw dividends monthly.',
+    '县衙差人来采买军粮，指名要你家仓里的好米。':
+      'A yamen runner comes to buy army grain — by name, he wants the fine rice in your granary.',
+    '佃户家的二小子长大了，老实肯干，想进庄当长工。':
+      'A tenant\u2019s second son has grown up — honest and hardworking — and wants to hire on at the manor.',
+    '苗贩子挑着担子进庄：上好的桑苗茶苗，今年栽下，来年就是钱。':
+      'A seedling peddler shoulders his baskets into the manor: fine mulberry and tea saplings — plant this year, coin the next.',
+    '县里一位体面人物的寿辰到了，四乡殷实人家都要备礼。':
+      'A personage of standing in the county has a birthday coming; every substantial household in the region prepares gifts.',
+    '秋粮归仓，族老们提议操办秋祭，告慰祖先。':
+      'The autumn grain is in; the clan elders propose holding the autumn rite to comfort the ancestors.',
+    '你的佃户和邻庄人为地界吵了起来，眼看要动手。':
+      'Your tenant and a neighbor from the next manor are quarreling over a boundary — it is close to coming to blows.',
+    '一夜大雪，把庄稼盖得严严实实。老农们都说：这雪下得好，冻死害虫，明年地有劲。':
+      'A night\u2019s heavy snow blankets the crops. The old farmers say: a good snow — it kills the pests, and next year the fields will be strong.',
+    '一对逃荒的夫妇在庄门外站了半日，想讨个活路，愿立租约种田。':
+      'A fugitive couple has stood outside the gate half the day, seeking a living; they will sign a lease and farm.',
+    '集上忽然传闻南边闹了灾，各货行行情一夜之间乱了。':
+      'Word suddenly sweeps the market of disaster in the south; overnight, the price of every good is in disarray.',
+    '跟了你三年的账房先生想告老还乡。':
+      'The bookkeeper who has served you three years wishes to retire to his home village.',
+
+    /* —— 事件选项 —— */
+    '重金雇人扑杀（60 两）': 'Hire crews to beat them off (60 taels)',
+    '燃火诱杀（20 两）': 'Fire traps (20 taels)',
+    '听天由命': 'Leave it to fate',
+    '打井掏塘（80 两）': 'Dig wells, dredge ponds (80 taels)',
+    '祈雨（10 两）': 'Pray for rain (10 taels)',
+    '省着用水硬扛': 'Ration water and endure',
+    '加固河堤（110 两）': 'Reinforce the levee (110 taels)',
+    '备沙袋应急（40 两）': 'Sandbags at the ready (40 taels)',
+    '赌它涨不上来': 'Gamble it won\u2019t crest',
+    '开仓放粮 60 石': 'Open the granary: 60 shi',
+    '平价粜粮 100 石': 'Sell 100 shi at fair price',
+    '闭门不纳': 'Bar the gates',
+    '买下 2 块水田（约 7 折）': 'Buy 2 paddy fields (~28% off)',
+    '买 1 块旱地（约 6 折）': 'Buy 1 dry field (~38% off)',
+    '手中无钱，婉拒': 'Decline — no silver to spare',
+    '趁机粜粮（卖出存粮一半）': 'Sell half the stores into the surge',
+    '捂粮惜售': 'Hold grain for higher prices',
+    '平价售予乡邻': 'Sell to neighbors at fair price',
+    '全部出手（加价两成）': 'Sell everything (+20%)',
+    '卖一半，留一半等行情': 'Sell half, hold half for the market',
+    '坐地起价': 'Hike the price',
+    '整仓卖给丝商（加价 15%）': 'Sell the whole stock to the merchant (+15%)',
+    '只卖一半': 'Sell half only',
+    '惜售待涨': 'Hold for a better price',
+    '减租一成（本年）': 'Cut rent 10% (this year)',
+    '摆一桌酒席安抚（18 两）': 'Sooth them with a banquet (18 taels)',
+    '租约写定，不能改': 'The lease is written; it stands',
+    '每月加 0.3 两': '+0.3 taels monthly',
+    '好言安抚，不加钱': 'Kind words, no raise',
+    '辞退挑头的': 'Dismiss the ringleader',
+    '出钱延医（45 两）': 'Pay for a physician (45 taels)',
+    '送些粮食调养': 'Send food to help him recover',
+    '让他家中自便': 'Leave him to his family',
+    '出资兴办蒙学（320 两）': 'Found the village school (320 taels)',
+    '捐些束脩（40 两）': 'Donate to his stipend (40 taels)',
+    '眼下无暇顾及': 'No time for this now',
+    '照数捐钱（55 两）': 'Pay the levy in full (55 taels)',
+    '出劳力抵捐': 'Send laborers instead',
+    '托故拖欠': 'Pretext and delay',
+    '赠银百两（110 两）': 'Gift 110 taels',
+    '借给他，不收息': 'Lend it, interest-free',
+    '婉言回绝': 'Politely decline',
+    '合力抵抗': 'Fight together',
+    '破财免灾': 'Pay them off',
+    '报案缉拿（25 两）': 'Report to the yamen (25 taels)',
+    '放贷 250 两（月息 2 分，半年期）': 'Lend 250 taels (2%/mo, half-year)',
+    '小放一百试试水': 'Test the waters: lend 100',
+    '生息有道，不作此务': 'Not in the lending business',
+    '延医施药、石灰洒道（70 两）': 'Physicians & lime on the roads (70 taels)',
+    '闭门自守': 'Seal the manor',
+    '备厚礼（45 两）': 'A lavish gift (45 taels)',
+    '随常礼（15 两）': 'A modest gift (15 taels)',
+    '称病不去': 'Plead illness',
+    '入股 320 两': 'Buy in: 320 taels',
+    '入股 160 两（红利减半）': 'Minor share: 160 taels',
+    '怕血本无归，婉拒': 'Decline — fear of losing it all',
+    '按市价卖给官府 120 石': 'Sell 120 shi to the yamen at market',
+    '趁机抬价三成': 'Gouge the price +30%',
+    '仓里要留种，不卖': 'Keep seed grain — refuse',
+    '收下（月钱照旧）': 'Take him on (usual wage)',
+    '收下，且许他学账房': 'Take him on; promise him the ledgers',
+    '庄上人手够了': 'The manor is fully staffed',
+    '挑块空田种桑（半价）': 'Plant mulberry on an empty plot (half price)',
+    '挑块坡地种茶（半价）': 'Plant tea on a slope (half price)',
+    '不看': 'Not interested',
+    '备寿礼（90 两）': 'A birthday gift (90 taels)',
+    '从简（30 两）': 'Keep it simple (30 taels)',
+    '不凑这个热闹': 'Skip the occasion',
+    '大办（70 两）': 'A grand rite (70 taels)',
+    '简办（25 两）': 'A simple rite (25 taels)',
+    '今年从权，免了': 'Skip it this year',
+    '亲自调解，各让一步': 'Mediate personally; both give ground',
+    '为自家佃户出头（20 两打点）': 'Back your tenants (20 taels of greasing)',
+    '庄稼人的事让他们自己了断': 'Let farmers settle their own quarrel',
+    '难得好兆头': 'A fine omen indeed',
+    '收留（安置费 32 两）': 'Take them in (32 taels to settle)',
+    '给些干粮打发': 'Give rations and send them on',
+    '庄上不留外人': 'No room for strangers here',
+    '静观其变': 'Watch and wait',
+    '厚赠盘缠留他再干两年（60 两）': 'A generous purse to keep him two more years (60 taels)',
+    '好聚好散': 'Part on good terms',
+
+    /* —— 事件结果 —— */
+    '雇了短工昼夜扑打，又烧了几堆烟火，蝗群过境，田里只受了轻微损失。':
+      'Hired hands beat the swarms day and night while smoke fires burn; the locusts pass with the fields only lightly bitten.',
+    '火堆起了大用场，蝗虫扑火者众，损失不大。':
+      'The fires earn their keep — locusts dive in by the thousands; losses are small.',
+    '火烧了半夜，风却转向了，仍有几块田遭了啃咬。':
+      'The fires burned past midnight, but the wind turned; a few fields took damage still.',
+    '蝗群吃了个痛快。佃户们叹气，今年的收成怕是要打折了。':
+      'The locusts feasted. The tenants sigh — this year\u2019s harvest will pay for it.',
+    '新井出水了，塘也掏深了三尺，田里总算续上了水。':
+      'The new well strikes water and the ponds are dredged three feet deeper; the fields drink at last.',
+    '三日后竟阴云四合，落了一场透雨！乡里都说你心诚。':
+      'Three days on, clouds gather from all quarters and a soaking rain falls! The village says your sincerity moved heaven.',
+    '戏做了，雨没来。白花了十两香烛钱。':
+      'The rites were performed, the rain did not come. Ten taels of incense, wasted.',
+    '你让各户轮番放水，能省一点是一点。':
+      'You have each household irrigate in turns — a little saved is a little saved.',
+    '全村劳力上了堤，夯土垒石，水涨堤也高，田保住了。':
+      'Every pair of hands in the village works the levee, ramming earth and stacking stone; the water rises but so does the dike. The fields are saved.',
+    '沙袋垒得及时，漫上来的水被挡了回去。':
+      'The sandbags rise in time; the creeping flood is turned back.',
+    '水到底漫了堤，低田泡了几天。':
+      'The water crests the levee after all; the low fields soak for days.',
+    '河水位堪堪停在堤下三寸，好险。':
+      'The river stops a bare three inches below the levee. A near thing.',
+    '半夜里堤开了口子，低洼的田全泡了汤。':
+      'At midnight the levee breaches; the low fields drown entirely.',
+    '施粥三日，饥民磕头而去。四乡八里都传你仁义，佃户干活也更卖力了。':
+      'Three days of gruel; the refugees kowtow and move on. Every village talks of your benevolence, and the tenants labor with new heart.',
+    '大门紧闭。饥民在门外骂了半日才散，乡里有人说你为富不仁。':
+      'The gates stay shut. The refugees curse outside for half a day before dispersing; some in the village call you rich and heartless.',
+    '送走了中人。这样的便宜，错过了也只能怪自家底气不足。':
+      'The broker is sent on his way. Such bargains missed are the fault of a thin purse.',
+    '你按兵不动。粮价果然还要再涨一阵。':
+      'You hold still. The grain price climbs on, as you reckoned.',
+    '你咬死高价，布行管事拂袖而去。商路上传出你难打交道的名声。':
+      'You stand firm on a high price; the cloth factor flounces off. Word spreads on the trade roads that you are hard to deal with.',
+    '你料定丝价还要涨，先稳住没卖。':
+      'You judge silk will climb further, and hold your stock.',
+    '你当场应承减租一成。佃户千恩万谢，奔走相告。':
+      'You grant the tenth off at once. The tenants thank you a hundred times and spread the word.',
+    '酒席上你说了些体己话，佃户们心里熨帖了些。':
+      'Over the banquet you speak a few warm words; the tenants go home easier in their hearts.',
+    '你搬出租约一条条念了。佃户们默默回去，几个老人摇头叹气。':
+      'You read the lease out, clause by clause. The tenants return in silence; the old men shake their heads.',
+    '加薪!长工们干活的劲头明显足了。':
+      'A raise! The hands attack their work with visible new vigor.',
+    '话说了不少，但人心散了一半，这个月活计做得慢。':
+      'Many words spoken, but half the heart gone; the work goes slow this month.',
+    '你许了秋后一并赏钱，长工们将信将疑地散了。':
+      'You promise a bonus after autumn; the hands disperse half-convinced.',
+    '挑头的长工卷铺盖走了。剩下的人噤若寒蝉，乡里却有人说你刻薄。':
+      'The ringleader rolls up his bedding and goes. The rest work mute as cicadas in winter; some in the village call you stingy.',
+    '郎中三副药下去，老人能下床了。全庄都说你厚道。':
+      'Three doses of the physician\u2019s medicine, and the old man rises from his bed. The whole manor calls you kind.',
+    '送去两斗米一只鸡。老人一家感念不尽。':
+      'Two pecks of rice and a chicken are sent over; the old man\u2019s family is boundlessly grateful.',
+    '病是拖好了，人心却凉了半截。':
+      'The illness passes, but half the heart\u2019s warmth goes with it.',
+    '蒙学开了课，孩童的读书声成了庄里一景。':
+      'The school opens its first lesson; children\u2019s recitations become a sight of the manor.',
+    '老秀才连连作揖。县里教谕也听说了你的义举。':
+      'The old scholar bows again and again. Even the county instructor hears of your generosity.',
+    '你婉言送客。老秀才背着书箱去了别庄。':
+      'You decline with courtesy; the old scholar shoulders his book-chest to another manor.',
+    '钱缴得爽快，书办笑脸相送，官府那边记了你一功。':
+      'The payment made promptly, the clerk sees you out smiling; the yamen marks a credit to your name.',
+    '佃户们上了半个月河工，田里的活计耽误了些。':
+      'The tenants spend half a month on the river works; the fields fall a little behind.',
+    '你托病没缴。书办冷着脸走了，县里挂了号。':
+      'You plead illness and pay nothing. The clerk leaves cold-faced; the county has taken note.',
+    '你亲手把银子交到孩子手上。此子若有所成，你便是他的恩主。':
+      'You place the silver in the boy\u2019s hands yourself. If he rises in the world, you will be his patron.',
+    '孩子三年后果然中了秀才，连本带利还了钱，逢人便说你仗义。':
+      'Three years on, the boy indeed passes as a licentiate, repays you with interest, and tells everyone of your generosity.',
+    '孩子落了榜，在外帮工三年才还上钱。':
+      'The boy fails the exam and labors three years away from home before repaying.',
+    '你说近来手头也紧。孩子低头去了。':
+      'You plead your own tight circumstances. The boy bows his head and goes.',
+    '护院和庄丁拿了两个贼人送官，四乡传你宅院护得好。':
+      'Your guards seize two thieves and hand them to the yamen; all around, folk say your house is well kept.',
+    '差役来勤快，追回了些赃物。县里赞你报案及时。':
+      'The constables are quick and recover some of the loot; the county praises your prompt report.',
+    '差役转了一圈没下文，钱花了，贼没抓着。':
+      'The constables circle about with no result — money spent, thieves unfound.',
+    '250 两放了出去，坐等收息。钱庄朝奉笑称你慧眼。':
+      '250 taels go out at interest; the money house\u2019s clerk smiles at your shrewd eye.',
+    '放了 100 两，先看看水深海深。':
+      '100 taels lent out — first, a taste of how deep these waters run.',
+    '你以「庄户人家不图这个」回绝了。朝奉碰了个软钉子。':
+      '\u201cFarming folk don\u2019t chase that trade,\u201d you say, and decline. The clerk meets a soft refusal.',
+    '药汤户户发送，庄里竟无一人染病，四乡称羡。':
+      'Medicinal broth goes to every household; not one soul falls ill. The whole countryside marvels.',
+    '虽然施药及时，仍有一位佃户没能挺过来。':
+      'Swift as the medicine was, one tenant does not pull through.',
+    '庄门紧闭半月，疫气没进庄。':
+      'Gates shut for half a month; the contagion stays outside.',
+    '疫气蔓延，前后殁了数人。庄里元气大伤。':
+      'The contagion spreads and several die, one after another. The manor is sorely weakened.',
+    '厚礼抬进门，主家面上大有光彩，逢人便夸你。':
+      'The lavish gift is carried in; the host glows with pride and praises you to everyone.',
+    '礼数周全，宾主尽欢。':
+      'Every courtesy observed; host and guests delight alike.',
+    '你托病没去。主家面上无光，背后说了些闲话。':
+      'You send illness as your excuse. The host loses face, and mutters follow behind your back.',
+    '入了油坊的股，往后每月有一份红钱。':
+      'You buy into the oil press; a dividend arrives each month hereafter.',
+    '入了个小股，细水长流。':
+      'A small share, taken — a thin stream that runs long.',
+    '你没入。掌柜又找别家去了。':
+      'You decline. The manager takes his proposition elsewhere.',
+    '你以留种为由回绝。差人倒也没为难。':
+      'You refuse on seed grain grounds; the runner makes no trouble.',
+    '后生手脚麻利，他爹在田里干活更卖力了。':
+      'The young man is quick with his hands; his father works the fields with double spirit.',
+    '你让他跟着账房先生识字记账。一家子喜出望外。':
+      'You set him to learn letters and ledgers under the bookkeeper; the whole family is overjoyed.',
+    '后生悻悻而去。他爹多少有些失落。':
+      'The young man leaves disappointed; his father hides a little hurt.',
+    '可惜没有合适的空田。':
+      'Sadly there is no suitable empty plot.',
+    '手里没有空着的坡地，只得作罢。':
+      'No free slope to plant — nothing to be done.',
+    '苗贩子又挑着担子去了邻庄。':
+      'The peddler shoulders his baskets off to the next manor.',
+    '寿宴上你被让到了上座。这层关系日后用得着。':
+      'At the birthday feast you are seated in the place of honor — a connection that will serve.',
+    '礼到了，心意也算到了。':
+      'The gift arrives; the regard arrives with it.',
+    '你没去。听说赴宴的都在贵人和前挂了号。':
+      'You do not go. Word is, every attendee was entered in the patron\u2019s book — none entered you.',
+    '猪羊齐备、鼓乐喧天，全庄吃了三天好饭。':
+      'Pigs and sheep in plenty, drums and pipes resounding; the whole manor eats well for three days.',
+    '三牲清酒，礼成。族老点头。':
+      'Sacrificial beasts and clear wine; the rite is done. The elders nod.',
+    '族老们脸色不大好看。':
+      'The elders\u2019 faces are not a pretty sight.',
+    '你把两家人请到一处，量了地、摆了酒，事平了，两边都敬你三分。':
+      'You bring both families to one table, survey the boundary, lay on wine — the matter settles, and both sides honor you for it.',
+    '你硬邦邦把地界争了回来。自家佃户扬眉吐气，邻庄却记恨上了。':
+      'You win the boundary back, blunt and hard. Your tenants walk tall; the next manor holds a grudge.',
+    '佃户吃了哑巴亏，觉得庄主不为自己撑腰。':
+      'Your tenant swallows the loss in silence, feeling the lord did not stand behind him.',
+    '你给各户多支了些炭钱。乡里都说来年差不了。':
+      'You pay each household a little extra for charcoal. The village agrees: next year will not disappoint.',
+    '安置了新佃户。夫妇俩千恩万谢，起早贪黑地干。':
+      'The new tenants are settled; husband and wife thank you a thousand times and work from dark to dark.',
+    '给了干粮和水。夫妇俩朝你拜了三拜，继续赶路。':
+      'Rations and water given; the couple bows three times to you and journeys on.',
+    '你让人把他们送出了庄口。心里多少有点不是滋味。':
+      'You have them escorted off the manor grounds; something of it sits ill with you.',
+    '银子到了位，账房先生红着眼圈又坐回了柜台。账目比先前更清爽。':
+      'Silver placed where it counts, the bookkeeper returns to his counter with rimmed eyes — and the accounts are cleaner than ever.',
+    '你结清了工钱，亲送出庄。新账房还得磨合些时日。':
+      'You settle his wages in full and see him out yourself. The new bookkeeper will need time to find his footing.'
+  };
+
+  /* ======================= 句式规则（动态句·具体优先） ======================= */
+  var P_SPEC = [
+    /* —— 事件结果（动态数字） —— */
+    [/按市价九二折粜出 (\d+) 石，得银 ([\d.]+) 两，也算两全。/g, 'Sold $1 shi at 8% under market for $2 taels — a fair compromise.'],
+    [/高价粜出 (\d+) 石，进账 ([\d.]+) 两。街坊背后骂你发横财。/g, 'Sold $1 shi into the dearth for $2 taels. Neighbors mutter about profiteering.'],
+    [/出手 (\d+) 石，得银 ([\d.]+) 两，余货入仓。/g, 'Moved $1 shi for $2 taels; the rest sits in the granary.'],
+    [/库存 (\d+) 石生丝尽数出手，得银 ([\d.]+) 两。/g, 'All $1 shi of raw silk sold for $2 taels.'],
+    [/成交 (\d+) 石，得银 ([\d.]+) 两。/g, 'Deal done: $1 shi for $2 taels.'],
+    [/棉花卖空，得银 ([\d.]+) 两，布行管事满意而去。/g, 'Cotton sold out for $1 taels; the cloth factor leaves satisfied.'],
+    [/两块水田到手，共花去 ([\d.]+) 两，比行价便宜了三成。/g, 'Two paddy fields acquired for $1 taels — thirty percent under market.'],
+    [/一块旱地入了册，花去 ([\d.]+) 两。/g, 'A dry field entered the register for $1 taels.'],
+    [/乱了一夜，被抢走 (\d+) 两银钱。/g, 'A night of chaos — $1 taels carried off.'],
+    [/银钱没多少，贼人搬走 (\d+) 石粮。/g, 'Little silver to take; the thieves hauled off $1 shi of grain.'],
+    [/送上 (\d+) 两，贼人扬长而去，倒也没伤人。/g, '$1 taels handed over; the bandits swagger off, no one harmed.'],
+    [/家中无现银，被搬走 (\d+) 石粮，佃户们抱怨你护不住庄。/g, 'No silver in the house — they took $1 shi of grain; tenants grumble you cannot guard the manor.'],
+    [/交割清爽，得银 ([\d.]+) 两。县里记了你的好。/g, 'A clean transaction for $1 taels. The county notes your cooperation.'],
+    [/多赚了 ([\d.]+) 两，但书办黑着脸走的。/g, '$1 taels extra earned — but the clerk leaves with a black face.'],
+    [/平价粜粮 (\d+) 石，乡邻感念，乡望涨了。/g, 'Sold $1 shi at fair price; the neighbors remember it, and renown rises.'],
+    [/花 ([\d.]+) 两把桑苗栽到了(.+?)上，三年后就是摇钱树。/g, function (m, c, plot) { return 'Mulberry saplings set on ' + t(plot) + ' for ' + c + ' taels — money trees in three years.'; }],
+    [/茶苗入了坡地，花去 ([\d.]+) 两。/g, 'Tea saplings set on the slope for $1 taels.'],
+    [/(\w+) 价应声而涨。/g, '$1 prices jump on the news.'],
+    [/(\w+) 价应声而跌。/g, '$1 prices tumble on the news.'],
+    [/放出的 (\d+) 两连本带利收了回来。/g, 'The $1 taels lent out came back with principal and interest.'],
+    [/放出的 (\d+) 两成了坏账，只收回利息。乡里有人说你心黑。/g, 'The $1 taels lent went bad — interest only. Some in the village call you heartless.'],
+    [/债主上门，被迫典卖 (\d+) 块田产抵债（得银 ([\d.]+) 两）。/g, 'Creditors at the door: $1 plots sold off for $2 taels to settle the debt.'],
+    [/典卖田产 (\d+) 块抵债，得银 ([\d.]+) 两/g, '$1 plots sold to creditors for $2 taels'],
+    [/再无可典之物，([\d.]+) 两亏空记作欠账，债主宽限来年。/g, 'Nothing left to pawn — a $1-tael shortfall joins the debt; creditors grant a year\u2019s grace.'],
+    [/族中长辈出面说合，代偿了 (\d+) 两欠账，又赎回一块薄田（(\d+) 亩）给你，凑了 80 两盘缠。田没了，人还在，从头再来。/g,
+      'The clan elders stepped in: cleared $1 taels of debt and redeemed a thin $2-mu plot for you, with 80 taels of grubstake. The land is less, the family intact — begin again.'],
+    [/亲族接济：代偿 (\d+) 两欠账，赎回薄田 (\d+) 亩，得盘缠 80 两，乡望受损。/g,
+      'Kin\u2019s rescue: cleared $1 taels of debt, redeemed a $2-mu plot, 80 taels grubstake; renown suffered.'],
+    [/十年期满，家产折银约 ([\d.]+) 两（(.+?)），此后不限年期。/g,
+      function (m, a, r) { return 'Decade mark: estate worth about ' + a + ' taels (' + t(r) + '). No end from here.'; }],
+    [/庄里人手紧，([\d.]+) 个活计只有 ([\d.]+) 个劳力，收成要打折。/g, 'Short-handed: $2 laborers for $1 tasks — yields will suffer.'],
+    [/仓里霉变了 (\d+) 石存粮。/g, '$1 shi of stores spoiled in the granary.'],
+    [/庄主自垫了 ([\d.]+) 两月度亏空，盼着下月进项。/g, 'You covered a $1-tael shortfall from your own purse, hoping next month brings income.'],
+    [/钱庄透支垫付 ([\d.]+) 两，计入借贷，月息 1.2%。/g, 'The money house advanced $1 taels on overdraft — added to debt at 1.2%/mo.'],
+    [/现金不足，钱庄垫付 ([\d.]+) 两/g, 'Cash short — the money house advanced $1 taels'],
+    [/佃户 (.+?) 家离开了庄子（(.+?)）/g, function (m, n, r) { return 'Tenant ' + n + '\u2019s household left the manor (' + t(r).replace(/。$/, '') + ')'; }],
+    [/佃户 (.+?) 家不满租事，举家迁走了。/g, 'Tenant $1\u2019s family, ill-pleased with the rent, moved away.'],
+    [/佃户 (.+?) 家被逐出庄子，乡里议论纷纷。/g, 'Tenant $1\u2019s family was evicted; the village talks.'],
+    [/康熙年间，你接手了祖上传下的田庄：(\d+) 块田、(\d+) 户佃户、纹银 ([\d.]+) 两。十年为一程，往后的日子看你经营成什么门第。/g,
+      'Kangxi era. You inherit the family manor: $1 plots, $2 tenant households, $3 taels of silver. A decade makes a round — what standing you reach is yours to earn.'],
+    [/时疫夺走了一位老佃户。/g, 'The epidemic took an old tenant.'],
+    [/时疫还是进了庄，一位佃户病殁。/g, 'The epidemic entered the manor all the same; a tenant died.'],
+    [/时疫夺走了性命。/g, 'The epidemic claimed a life.'],
+    [/庄户(\d+)/g, 'Household $1'],
+    /* —— 引擎日志 —— */
+    [/购入一块(水田|旱地|坡地)（(\d+) 亩），花去 ([\d.]+) 两/g, 'Bought a $1 ($2 mu) for $3 taels'],
+    [/开垦荒地一块（(\d+) 亩），花去 ([\d.]+) 两，地力尚薄/g, 'Reclaimed a wasteland plot ($1 mu) for $2 taels; soil still thin'],
+    [/卖出(水田|旱地|坡地)一块，得银 ([\d.]+) 两/g, 'Sold a $1 for $2 taels'],
+    [/给一块田上了肥，地力 \+(\d+)/g, 'Fertilized a plot: fertility +$1'],
+    [/招佃 (\d+) 户（(.+?)），安置费 ([\d.]+) 两/g, 'Recruited $1 tenant households ($2); settling fee $3 taels'],
+    [/新雇长工 (\d+) 人，月薪各 ([\d.]+) 两/g, 'Hired $1 hands at $2 taels/mo each'],
+    [/买入(稻谷|小麦|棉花|生丝|茶叶) (\d+) 石（@([\d.]+)），花去 ([\d.]+) 两/g, 'Bought $2 shi of $1 @$3 for $4 taels'],
+    [/粜出(稻谷|小麦|棉花|生丝|茶叶) (\d+) 石（@([\d.]+)），进账 ([\d.]+) 两/g, 'Sold $2 shi of $1 @$3 for $4 taels'],
+    [/向钱庄借贷 ([\d.]+) 两（月息 ([\d.]+)%）/g, 'Borrowed $1 taels from the money house ($2%/mo)'],
+    [/偿还钱庄 ([\d.]+) 两/g, 'Repaid the money house $1 taels'],
+    [/放出贷银 ([\d.]+) 两（月息 2 分，半年期）/g, 'Lent out $1 taels (2%/mo, half-year)'],
+    [/(义仓|水车|蒙学|杂货铺|护院|祠堂|药铺)修到 (\d+) 级，花去 ([\d.]+) 两/g,
+      function (m, b, lv, c) { return t(b) + ' raised to level ' + lv + ' for ' + c + ' taels'; }],
+    [/缴田赋 ([\d.]+) 两（官府关系好，减免一成五）/g, 'Land tax $1 taels (good official ties: 15% off)'],
+    [/缴田赋 ([\d.]+) 两/g, 'Land tax $1 taels'],
+    [/亏空 ([\d.]+) 两转为欠账/g, '$1-tael shortfall rolled into debt'],
+    [/(水田|旱地|坡地)的(水稻|小麦|棉花|桑树|茶树)收了 (\d+) 石，仓满溢出 (\d+) 石按八五折粜出/g,
+      'The $1 $2 came in: $3 shi — granary full, $4 shi overflow sold at 85%'],
+    [/(水田|旱地|坡地)的(水稻|小麦|棉花|桑树|茶树)收了 (\d+) 石/g, 'The $1 $2 harvested: $3 shi'],
+    [/(水田|旱地|坡地)种下(水稻|小麦|棉花|桑树|茶树)，苗木花去 ([\d.]+) 两（第 (\d+) 年起出产）/g,
+      'Planted $2 on the $1 — saplings $3 taels, first yield in year $4'],
+    [/(水田|旱地|坡地)种下(水稻|小麦|棉花|桑树|茶树)，苗木花去 ([\d.]+) 两/g, 'Planted $2 on the $1 — saplings cost $3 taels'],
+    [/(水田|旱地|坡地)种下(水稻|小麦|棉花|桑树|茶树)（佃户自备籽种）/g, 'Planted $2 on the $1 (tenants provide seed)'],
+    /* —— fail/toast —— */
+    [/银钱不够，需 ([\d.]+) 两/g, 'Not enough silver — needs $1 taels'],
+    [/开垦需 ([\d.]+) 两/g, 'Reclaiming needs $1 taels'],
+    [/安置 (\d+) 户需 ([\d.]+) 两/g, 'Settling $1 households costs $2 taels'],
+    [/施肥需 ([\d.]+) 两/g, 'Fertilizing needs $1 taels'],
+    [/需银 ([\d.]+) 两/g, 'Needs $1 taels'],
+    [/苗木钱需 ([\d.]+) 两/g, 'The saplings cost $1 taels'],
+    [/仓里只有 ([\d.]+) 石/g, 'Only $1 shi in the granary'],
+    [/仓装不下：上限 ([\d.]+) 石/g, 'Won\u2019t fit: granary cap is $1 shi'],
+    [/钱庄最多肯放账 ([\d.]+) 两（提高乡望可多借）/g, 'The money house will lend at most $1 taels (raise renown to borrow more)'],
+    [/这块田还种着(水稻|小麦|棉花|桑树|茶树)，收了再卖/g, 'That plot grows $1 — harvest before selling'],
+    [/这块田已种着(水稻|小麦|棉花|桑树|茶树)/g, 'That plot already grows $1'],
+    [/(水稻|小麦|棉花|桑树|茶树)只宜种在坡地/g, '$1 suits only the hillside'],
+    [/(水稻|小麦|棉花|桑树|茶树)的播种时节是 ([\d、]+) 月/g, '$1 is sown in months $2'],
+    [/已保存到(.+)/g, 'Saved to $1'],
+    [/已读取(.+)/g, 'Loaded $1'],
+    [/已导入「(.+?)」：第(\d+)年(\d+)月，接着过。/g, 'Imported \u201c$1\u201d — Yr $2 Mo $3. Carrying on.'],
+    [/存档版本不符（需 v3，实为 v(\d+)）/g, 'Save version mismatch (need v3, found v$1)'],
+    /* —— 田块卡 —— */
+    [/生长中 · 距收获 (\d+) 个月/g, 'Growing · harvest in $1 mo'],
+    [/岁岁出产于 (\d+) 月/g, 'yields yearly in month $1'],
+    [/第 (\d+) 年起出产/g, 'first yield in year $1'],
+    [/· 受损 (\d+)%/g, '· damaged $1%'],
+    [/施肥 (\d+) 两/g, 'Fertilize $1 taels'],
+    [/（(\d+(?:\/\d+)*)月 · 籽种佃户自备）/g, '(sow $1 · tenants provide seed)'],
+    [/（(\d+(?:\/\d+)*)月 · 苗木 ([\d.]+) 两）/g, '(sow $1 · saplings $2 taels)'],
+    [/（(\d+)年起产 · 苗木 ([\d.]+) 两）/g, '(yields from yr $1 · saplings $2 taels)'],
+    [/(\d+)年起产/g, 'yields from yr $1'],
+    [/购(水田|旱地|坡地) /g, 'Buy $1 '],
+    /* —— 提示卡 —— */
+    [/农事节令 · 第 (\d+) 年 (\d+) 月/g, 'Seasons · Yr $1 Mo $2'],
+    [/将熟：(.+?)，快收成了，别忘了腾仓。/g, 'Nearly ripe: $1 — harvest soon; make room in the granary.'],
+    [/(\d+) 块田闲置，本月还可下种：(.+?)。/g, '$1 idle plots; can still sow this month: $2.'],
+    [/(\d+) 块田闲置，眼下不是农时，只能等时节。/g, '$1 idle plots — out of season for now; wait for the proper month.'],
+    [/在田：(.+?)。/g, 'In the fields: $1.'],
+    [/（(\d+) 月后可收）/g, '(harvest in $1 mo)'],
+    [/人手不足（([\d.]+) 对 ([\d.]+)），收成要打折，宜添长工或招佃。/g, 'Short of labor ($1 vs $2): yields take a cut. Hire hands or recruit tenants.'],
+    [/仓快满了，新粮无处可放，宜粜出一部分。/g, 'The granary is nearly full — sell some grain to make room.'],
+    [/粮价偏高（([\d.]+) 两\/石），正是粜粮换银的好时候。/g, 'Grain is dear ($1 taels/shi) — a fine time to sell.'],
+    [/粮价偏低（([\d.]+) 两\/石），有闲钱不妨囤些，待春荒再卖。/g, 'Grain is cheap ($1 taels/shi) — spare silver might stock up for the spring dearth.'],
+    [/有佃户忠诚仅 (\d+)，降些租率或修祠堂，免得举家迁走。/g, 'A tenant\u2019s loyalty is only $1 — ease the rent or raise the hall before they walk.'],
+    [/欠账 ([\d.]+) 两，每月利钱 ([\d.]+) 两，手头宽裕就还上些。/g, 'Debt $1 taels, interest $2/mo — repay some when you can spare it.'],
+    [/庄里一切安稳，按着节令过日子便是。/g, 'All is quiet at the manor. Live by the seasons.'],
+    /* —— 月面板 / deadline —— */
+    [/（仓满，溢出 ([\d.]+) 石折价售出得 ([\d.]+) 两）/g, '(granary full: $1 shi overflow sold for $2 taels)'],
+    [/第 <b>(\d+)<\/b> 年 · 距十年期满还有 <b>(\d+)<\/b> 个月/g, 'Yr <b>$1</b> · <b>$2</b> months to the decade mark'],
+    [/已逾十年 · 第 <b>(\d+)<\/b> 年，庄子还在你手里/g, 'Past the decade — Yr <b>$1</b>, and the manor is still yours'],
+    [/欠账 ([\d.]+) 两，月息 1.2% 在滚/g, 'Debt $1 taels, interest at 1.2%/mo'],
+    /* —— 人事 / 市集 / 营建 / 账本 —— */
+    [/租率 <span class="h3-side">佃户期望你取 (\d+)% 左右<\/span>/g, 'Rent share <span class="h3-side">tenants expect ~$1%</span>'],
+    [/佃户 <span class="h3-side">/g, 'Tenants <span class="h3-side">'],
+    [/劳力 ([\d.]+) · 已佃 (\d+) 年/g, 'Labor $1 · tenanted $2 yrs'],
+    [/月支 ([\d.]+) 两/g, 'wages $1/mo'],
+    [/仓容 ([\d.]+)\/([\d.]+) 石/g, 'granary $1/$2 shi'],
+    [/([\d.]+) 两\/石/g, '$1 taels/shi'],
+    [/存 (\d+)</g, 'Stock $1<'],
+    [/可借上限 ([\d.]+) 两/g, 'credit limit $1 taels'],
+    [/放出 ([\d.]+) 两 · 月息 2 分/g, 'Lent $1 taels · 2%/mo'],
+    [/余 (\d+) 个月/g, '$1 mo left'],
+    [/(.+?) · 每月分红 ([\d.]+) 两/g, function (m, n, v) { return t(n) + ' · dividend ' + v + '/mo'; }],
+    [/已投入 ([\d.]+) 两/g, 'invested $1 taels'],
+    [/仓容 \+(\d+) 石，霉变减 (\d+)%/g, 'storage +$1 shi, spoilage −$2%'],
+    [/伏旱保全 (\d+)%，收成 \+(\d+)%/g, 'drought cover $1%, yield +$2%'],
+    [/佃户忠诚 \+月([\d.]+)，乡望 \+月([\d.]+)/g, 'loyalty +$1/mo, renown +$2/mo'],
+    [/每月进项 ([\d.]+) 两/g, 'income $1/mo'],
+    [/抵御匪患 (\d+)%/g, 'bandit cover $1%'],
+    [/时疫防护 (\d+)%/g, 'plague cover $1%'],
+    [/升 (\d+) 级：/g, 'to level $1: '],
+    [/现值约 ([\d.]+) 两/g, 'now ~$1 taels'],
+    [/最高 ([\d.]+) 两/g, 'peak $1 taels'],
+    [/(\d+) 起</g, '$1 faced<'],
+    [/第?(\d+)年(\d+)月(?=<)/g, 'Yr$1·M$2'],
+    [/(\d+) 块 · 共 (\d+) 亩/g, '$1 plots · $2 mu in all'],
+    [/(\d+) 块 · (\d+) 亩/g, '$1 plots · $2 mu'],
+    [/第(\d+)年(\d+)月 · (.+?) · 田产 (\d+) 块 · 约值 ([\d.]+) 两/g,
+      function (m, y, mo, d, p, a) { return 'Yr' + y + '\u00b7M' + mo + ' · ' + t(d) + ' · ' + p + ' plots · ~' + a + ' taels'; }],
+    [/（起始 ([\d.]+) 两 · (\d+) 户佃户）/g, '(start: $1 taels · $2 tenants)'],
+    /* —— 结算弹窗 —— */
+    [/([SABCD]) 级 · /g, 'Grade $1 · '],
+    [/再攒 ([\d.]+) 两，便可升 ([SABCD]) 级「(.+?)」。/g,
+      function (m, a, g, ti) { return 'Amass ' + a + ' more taels to reach grade ' + g + ' \u201c' + t(ti) + '\u201d.'; }],
+    [/(\d+) 个月（第 (\d+) 年 (\d+) 月）/g, '$1 months (Yr $2 Mo $3)'],
+    [/难度：(.+?)。/g, function (m, d) { return 'Difficulty: ' + t(d) + '.'; }],
+    /* —— 事件弹窗 —— */
+    [/事 件 · 第 (\d+) 年 (\d+) 月/g, 'EVENT · Yr $1 Mo $2'],
+    /* —— 成就/事件 日志前缀 —— */
+    [/【成就达成】(.+?) —— (.+?)(?=$|<|，)/g, function (m, a, d) { return '\u2605 Achievement: ' + t(a) + ' \u2014 ' + t(d); }],
+    [/【(.+?)】/g, function (m, n) { return '[' + t(n) + '] '; }],
+
+  ];
+
+
+  /* —— 短词（带定界或低歧义） —— */
+  var P_SHORT = [
+    [/>收</g, '>Harv<'], [/>入</g, '>In<'], [/>出</g, '>Out<'],
+    [/田赋/g, 'Land tax'],
+    [/分红(?= \+)/g, ' dividends'],
+    [/存粮/g, 'Granary'], [/银两/g, 'Silver'], [/时间/g, 'Date'], [/田产/g, 'Land'],
+    [/人丁/g, 'People'], [/乡望/g, 'Renown'], [/官府/g, 'Officials'], [/借贷/g, 'Debt'],
+    [/租率/g, 'Rent share'], [/忠诚(?= \d)/g, 'Loyalty '],
+    [/存档一/g, 'Slot 1'], [/存档二/g, 'Slot 2'], [/存档三/g, 'Slot 3'], [/自动存档/g, 'Autosave'],
+    [/>空</g, '>Empty<'],
+    [/忠诚(?= |<)/g, 'Loyalty '], [/月薪/g, 'Monthly wage'],
+    [/卖田(?=<)/g, 'Sell'], [/title="卖出"/g, 'title="Sell plot"'],
+    [/逐出(?=<)/g, 'Evict'], [/施肥(?= \d)/g, 'Fertilize'],
+    [/开垦荒地/g, 'Reclaim'], [/地力 /g, 'Fertility '],
+    [/下个月 (?=<kbd>)/g, 'Next Month '],
+    [/<i>两<\/i>/g, '<i>taels</i>'], [/<i>石<\/i>/g, '<i>shi</i>'],
+    [/>(休耕|复耕)</g, function (m, w) { return '>' + (w === '休耕' ? 'Fallow' : 'Recultivate') + '<'; }],
+    [/、/g, ', '],
+    [/▲涨/g, '▲+'], [/▼跌/g, '▼−'], [/—平/g, '—'],
+    [/>买</g, '>Buy<'], [/>卖</g, '>Sell<'],
+    [/偿还(?=<)/g, 'Repay'], [/借入(?=<)/g, 'Borrow'],
+    [/兴造(?=<)/g, 'Build'], [/读取(?=<)/g, 'Load'], [/删除(?=<)/g, 'Delete'],
+    [/满级/g, 'Max'], [/货栈/g, 'Warehouse'], [/钱庄/g, 'Money house'], [/成就(?= <)/g, 'Achievements'],
+    [/placeholder="数额（两）"/g, 'placeholder="Amount (taels)"'],
+    [/placeholder="数量"/g, 'placeholder="Qty"'],
+    [/>稻</g, '>R<'], [/>麦</g, '>W<'], [/>棉</g, '>C<'], [/>桑</g, '>M<'], [/>茶</g, '>T<'], [/>丝</g, '>S<'],
+    [/长工 </g, 'Hands <'], [/长工(?= <span)/g, 'Hands ']
+  ];
+
+  /* —— 词典里的较长句自动升级为嵌入式规则（覆盖月报、日志、提示等拼接场景） —— */
+  var esc = function (x) { return x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); };
+  var S_RULES = Object.keys(S)
+    .filter(function (k) { return /[\u4e00-\u9fff]/.test(k) && k.length >= 4; })
+    .map(function (k) { return [new RegExp(esc(k), 'g'), S[k]]; });
+
+  /* ======================= 通用单位兜底（最后执行） ======================= */
+  var P_GENERIC = [
+    [/([\d.]+) 两/g, '$1 taels'],
+    [/([\d.]+) 石/g, '$1 shi'],
+    [/(\d+) 亩/g, '$1 mu'],
+    [/(\d+) 块/g, '$1 plots'],
+    [/(\d+) 户/g, '$1 households'],
+    [/(\d+) 工/g, '$1 workers'],
+    [/第(\d+)年(\d+)月/g, 'Yr$1·M$2'],
+    [/第 (\d+) 年 · /g, 'Yr $1 · '],
+    [/(水稻|小麦|棉花|桑树|茶树|稻谷|生丝|茶叶)/g, function (m, n) { return S[n] || n; }],
+    [/(水田|旱地|坡地|荒地)/g, function (m, n) { return S[n] || n; }],
+    [/(义仓|水车|蒙学|杂货铺|护院|祠堂|药铺)(?!修到)/g, function (m, n) { return S[n] || n; }],
+    [/(宜稻宜桑|宜麦宜棉|宜茶宜棉|需开垦)/g, function (m, n) { return S[n] || n; }]
+  ];
+
+  var P = P_SPEC.concat(S_RULES, P_SHORT, P_GENERIC);
+
+  /* ======================= 翻译核心 ======================= */
+  function t(s) {
+    if (cur !== 'en' || s == null) return s;
+    if (typeof s !== 'string') return s;
+    if (S[s] != null) return S[s];
+    var out = s;
+    for (var i = 0; i < P.length; i++) {
+      var rule = P[i];
+      if (rule[0].test(s)) out = out.replace(rule[0], rule[1]);
+    }
+    return out;
+  }
+
+  /* ======================= 静态 DOM 遍历 ======================= */
+  function applyDom() {
+    // 先快照帮助页原貌（遍历翻译会改到它的标题文本节点）
+    var helpBody0 = document.querySelector('#modal-help .help-body');
+    if (helpBody0 && cur === 'en' && !helpBody0.__zhHtml) helpBody0.__zhHtml = helpBody0.innerHTML;
+    var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
+      acceptNode: function (n) {
+        if (!n.nodeValue || !n.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
+        var p = n.parentNode;
+        if (!p || /^(SCRIPT|STYLE)$/.test(p.nodeName)) return NodeFilter.FILTER_REJECT;
+        return NodeFilter.FILTER_ACCEPT;
+      }
+    });
+    var nodes = [];
+    while (walker.nextNode()) nodes.push(walker.currentNode);
+    nodes.forEach(function (n) {
+      var raw = n.nodeValue;
+      var core = raw.trim();
+      if (cur === 'en') {
+        if (S[core] != null) {
+          if (!n.__zh) n.__zh = raw;
+          var lead = raw.slice(0, raw.indexOf(core));
+          var tail = raw.slice(raw.indexOf(core) + core.length);
+          n.nodeValue = lead + S[core] + tail;
+        }
+      } else if (n.__zh != null) {
+        n.nodeValue = n.__zh;
+      }
+    });
+    // 属性
+    document.querySelectorAll('[placeholder]').forEach(function (el) {
+      var ph = el.getAttribute('placeholder');
+      if (cur === 'en') {
+        if (!el.__zhPh) el.__zhPh = ph;
+        if (S[ph] != null) el.setAttribute('placeholder', S[ph]);
+      } else if (el.__zhPh) el.setAttribute('placeholder', el.__zhPh);
+    });
+    document.querySelectorAll('[title]').forEach(function (el) {
+      var ti = el.getAttribute('title');
+      if (cur === 'en') {
+        if (!el.__zhTi) el.__zhTi = ti;
+        if (S[ti] != null) el.setAttribute('title', S[ti]);
+      } else if (el.__zhTi) el.setAttribute('title', el.__zhTi);
+    });
+    applyHelp();
+    var btn = document.getElementById('btnLang');
+    if (btn) btn.textContent = cur === 'en' ? '中文' : 'EN';
+  }
+
+  /* ======================= 帮助弹窗整页替换 ======================= */
+  var HELP_EN = '<section><h3>Goal</h3>' +
+    '<p>Turn the manor your ancestors left you into a house of standing — there is no deadline; the decade is just a milestone. The more your estate is worth in silver, the higher your grade (S Local Dynasty / A Gentry Household / B Well-Fed & Clothed / C Getting By / D Strained Means). Open "Report" on the top bar anytime to see where you stand — it never stops the game. Even deep in debt with every plot pawned, the manor does not fall: weather it, and you are your own man again.</p></section>' +
+    '<section><h3>Farm Calendar</h3>' +
+    '<p>Rice: transplant in months 4\u20135, harvest 9\u201310. Wheat: sow 9\u201310, reap next 5\u20136. Cotton: 4\u20135, harvest 9\u201310. Mulberry & tea saplings go in during 2\u20136, yielding yearly from the 3rd and 4th year respectively. Miss the season and you wait a year. Drought hurts rice, floods drown fields — a waterwheel protects; fertility lives on fertilizer and fallow.</p></section>' +
+    '<section><h3>People & Money</h3>' +
+    '<p>Tenant households work the open fields for a share — a higher rent share means more grain for you but falling loyalty: below 28 they slack or move away. Hired hands draw monthly wages and carry the mulberry and tea gardens. High renown opens doors: recruiting is easier and credit larger. When hands fall short, harvests shrink automatically.</p></section>' +
+    '<section><h3>Market Craft</h3>' +
+    '<p>Grain is dear in the lean months and cheap after harvest: selling from month 1\u20134 pays best, autumn gluts the market. Buy slightly above market, sell slightly below — buy low, sell high. The money house lends at 1.2% monthly (land and renown set your credit) and takes deposits for interest — with bad-debt risk.</p></section>' +
+    '<section><h3>Misfortune</h3>' +
+    '<p>Each month may bring an event: locusts, drought, floods, plague, bandits, tenant petitions\u2026 Most offer choices; paying often steadies the outcome, but gritting through on your own purse is a path too. Events are entered in the ledger.</p></section>' +
+    '<section><h3>Controls</h3>' +
+    '<p>Press "Next Month" to advance (shortcut <kbd>Space</kbd> / <kbd>Enter</kbd>). An autosave is written monthly; the "Saves" window holds three manual slots, and you can "Export" your game to a .json file and "Import" it on another computer (or drag the file into the saves window). "Report" shows your grade anytime; "New" restarts at a difficulty of your choosing. <kbd>Esc</kbd> closes dialogs.</p></section>';
+
+  function applyHelp() {
+    var body = document.querySelector('#modal-help .help-body');
+    if (!body) return;
+    if (cur === 'en') {
+      if (!body.__zhHtml) body.__zhHtml = body.innerHTML;
+      body.innerHTML = HELP_EN;
+    } else if (body.__zhHtml) {
+      body.innerHTML = body.__zhHtml;
+    }
+  }
+
+  /* ======================= 展示钩子：innerHTML / textContent ======================= */
+  function hook() {
+    try {
+      var dInner = Object.getOwnPropertyDescriptor(Element.prototype, 'innerHTML');
+      Object.defineProperty(Element.prototype, 'innerHTML', {
+        set: function (v) { dInner.set.call(this, t(v)); },
+        get: dInner.get, configurable: true
+      });
+      // textContent 定义在 Node.prototype 上（不在 Element 上）
+      var proto = (typeof Node !== 'undefined' && Node.prototype) || Element.prototype;
+      var dText = Object.getOwnPropertyDescriptor(proto, 'textContent');
+      if (dText && dText.set) {
+        Object.defineProperty(proto, 'textContent', {
+          set: function (v) { dText.set.call(this, typeof v === 'string' ? t(v) : v); },
+          get: dText.get, configurable: true
+        });
+      }
+    } catch (e) { /* 环境不支持则 EN 覆盖面缩小，不影响运行 */ }
+  }
+
+  /* ======================= 开关 ======================= */
+  function save() {
+    try { localStorage.setItem(LANG_KEY, JSON.stringify({ lang: cur })); } catch (e) {}
+  }
+  function set(lang) {
+    cur = lang === 'en' ? 'en' : 'zh';
+    save();
+    applyDom();
+    if (window.ManorUIRender) window.ManorUIRender();
+  }
+  function toggle() { set(cur === 'en' ? 'zh' : 'en'); }
+
+  hook();
+  if (cur === 'en') {
+    // 页面加载即为英文：等 DOM 就绪后翻译静态文本
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', applyDom);
+    } else applyDom();
+  } else {
+    // 中文模式也要挂按钮文案
+    document.addEventListener('DOMContentLoaded', function () {
+      var btn = document.getElementById('btnLang');
+      if (btn) btn.textContent = 'EN';
+    });
+  }
+
+  window.ManorLang = {
+    t: t,
+    get: function () { return cur; },
+    isEn: function () { return cur === 'en'; },
+    set: set,
+    toggle: toggle
+  };
+})();
+
+</script>
+<script>
+/* =========================================================================
+ * 庄园物语 · 界面控制 (ui.js)
+ * ========================================================================= */
+(function () {
+  'use strict';
+  var E = window.ManorEngine, D = window.ManorData, SFX = window.ManorSound;
+  var $ = function (id) { return document.getElementById(id); };
+  var GOODS_NAME = E.GOODS_NAME;
+
+  var PREFS_KEY = 'manor_prefs_v1';
+  var SLOT_KEYS = ['manor_slot_1', 'manor_slot_2', 'manor_slot_3', 'manor_auto'];
+  var SLOT_NAMES = ['存档一', '存档二', '存档三', '自动存档'];
+
+  var prefs = loadPrefs();
+  var s = null;               // 游戏状态
+  var activeTab = 'people';
+  var lastReport = null;
+  var lastPrices = {};
+  var currentEvent = null;    // {id, name, text, choices}
+
+  function loadPrefs() {
+    try { return JSON.parse(localStorage.getItem(PREFS_KEY) || '{}'); }
+    catch (e) { return {}; }
+  }
+  function savePrefs() {
+    try { localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); } catch (e) {}
+  }
+
+  /* ------------------------------------------------------------ 工具 */
+  function fm(n) { return Math.round(n * 10) / 10; }
+  function fm1(n) { return (Math.round(n * 10) / 10).toFixed(1); }
+  function toast(text, tone) {
+    var stack = $('toasts');
+    while (stack.children.length >= 3) stack.removeChild(stack.firstChild);
+    var el = document.createElement('div');
+    el.className = 'toast ' + (tone || '');
+    el.textContent = text;
+    stack.appendChild(el);
+    setTimeout(function () {
+      el.classList.add('out');
+      setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 300);
+    }, 2400);
+  }
+  function fx(text) {
+    $('fx').innerHTML = '<div class="fx-big">' + text + '</div>';
+    setTimeout(function () { $('fx').innerHTML = ''; }, 1050);
+  }
+  function openModal(id) { $(id).classList.add('open'); }
+  function closeModal(id) { $(id).classList.remove('open'); }
+  function closeModals() {
+    ['modal-saves', 'modal-help', 'modal-newgame'].forEach(closeModal);
+  }
+  function anyBlockingModal() {
+    return $('modal-event').classList.contains('open') || $('modal-result').classList.contains('open');
+  }
+  function anyModalOpen() { return !!document.querySelector('.modal.open'); }
+  function act(fn) {
+    var res = fn();
+    if (res && !res.ok) { toast(res.reason || '操作无效', 'warn'); SFX.play('error'); return false; }
+    render();
+    return true;
+  }
+
+  /* ------------------------------------------------------------ 启动 */
+  function start(difficulty, seed) {
+    s = E.createGame({ difficulty: difficulty || 'normal', seed: seed });
+    lastReport = null; lastPrices = {}; currentEvent = null;
+    activeTab = 'people';
+    render();
+    toast('新的一局开始了。点「帮助」查看经营要略。', 'gold');
+  }
+
+  /* ------------------------------------------------------------ 主渲染 */
+  function render() {
+    if (!s) return;
+    renderRes();
+    renderFields();
+    renderTips();
+    renderOverview();
+    renderTab();
+    renderMonthPanel();
+    updateSoundBtn();
+    autosave();
+  }
+
+  function renderRes() {
+    var grain = s.store.rice + s.store.wheat;
+    var labor = E.laborSupply(s);
+    var chips = [
+      { cls: 'time', label: '时间', v: '第' + s.year + '年' + s.month + '月' },
+      { cls: 'cash', label: '银两', v: fm1(s.cash) + ' 两' },
+      { cls: 'grain', label: '存粮', v: Math.floor(grain) + '/' + E.storeCap(s) + ' 石' },
+      { label: '田产', v: s.plots.length + ' 块 · ' + E.totalMu(s) + ' 亩' },
+      { label: '人丁', v: s.tenants.length + ' 户 + ' + s.workers.count + ' 工' },
+      { label: '劳力', v: fm1(labor) + '/' + fm1(E.laborDemand(s)) },
+      { label: '乡望', v: Math.round(s.prestige) },
+      { label: '官府', v: Math.round(s.relation) },
+      { cls: s.debt > 0 ? 'debt' : '', label: '借贷', v: fm1(s.debt) + ' 两' }
+    ];
+    $('resStrip').innerHTML = chips.map(function (c) {
+      return '<div class="res-chip ' + (c.cls || '') + '"><span>' + c.label + '</span><b>' + c.v + '</b></div>';
+    }).join('');
+  }
+
+  function renderFields() {
+    $('plotsSummary').textContent = s.plots.length + ' 块 · 共 ' + E.totalMu(s) + ' 亩';
+    var buy = ['paddy', 'dry', 'slope'].map(function (t) {
+      var price = E.getLandPrice(s, t);
+      return '<button class="buy-btn" data-act="buyplot" data-type="' + t + '"' +
+        (s.cash < price ? ' disabled' : '') + '>购' + D.LAND[t].name + ' <b>' + price + ' 两</b></button>';
+    }).join('');
+    buy += '<button class="buy-btn" data-act="reclaim"' + (s.cash < D.RECLAIM_COST_PER_MU * 20 ? ' disabled' : '') +
+      '>开垦荒地 <b>' + fm1(D.RECLAIM_COST_PER_MU * 20) + ' 两</b></button>';
+    $('fieldsBuy').innerHTML = buy;
+
+    $('plotGrid').innerHTML = s.plots.map(function (p) {
+      var head = '<div class="plot-head"><span class="plot-type ' + p.type + '">' + p.typeName + '</span>' +
+        '<span class="plot-mu">' + p.mu + ' 亩</span>' +
+        (p.fallow ? '<span class="plot-fallow">休耕养地</span>' : '') +
+        '<button class="plot-sell" data-act="sellplot" data-plot="' + p.id + '" title="卖出">卖田</button></div>';
+      var crop = '<div class="plot-crop">';
+      if (p.crop) {
+        var c = D.CROPS[p.crop];
+        var sub = '';
+        var warn = '';
+        if (c.kind === 'annual') {
+          var left = Math.max(0, p.cropState.due - s.monthIndex);
+          sub = '生长中 · 距收获 ' + left + ' 个月';
+        } else {
+          var treeYear = Math.floor((p.cropState.age || 0) / 12) + 1;
+          sub = '第 ' + treeYear + ' 年 · ' + (c.firstYield + 1 > treeYear + 1 ? '' : '') +
+            (treeYear >= c.firstYield ? '岁岁出产于 ' + c.harvestMonth + ' 月' : '第 ' + c.firstYield + ' 年起出产');
+        }
+        if (p.cropState.stress > 0.22) warn = '<span class="stress-warn">· 受损 ' + Math.round(Math.min(0.65, p.cropState.stress) * 100) + '%</span>';
+        crop += '<span class="crop-badge ' + (p.crop === 'silk' ? '' : p.crop) + '">' + c.short + '</span>' +
+          '<div class="crop-info"><b>' + c.name + '</b><span>' + sub + warn + '</span></div>';
+      } else {
+        crop += '<span class="plot-idle">' + (p.fallow ? '休耕中，地力缓缓回升' : '闲置 · ' + D.LAND[p.type].cropNote) + '</span>';
+      }
+      crop += '</div>';
+      var fert = '<div class="fert-row"><span>地力 ' + Math.round(p.fertility) + '</span>' +
+        '<div class="fert-bar"><i style="width:' + p.fertility + '%"></i></div></div>';
+      // 播种下拉
+      var opts = '<option value="">— 播种 / 栽种 —</option>';
+      ['rice', 'wheat', 'cotton', 'mulberry', 'tea'].forEach(function (cid) {
+        var c = D.CROPS[cid];
+        if (c.kind === 'good') return;
+        if (c.land === 'paddy' && p.type !== 'paddy') return;
+        if (c.land === 'slope' && p.type !== 'slope') return;
+        var okSeason = c.kind === 'annual' ? c.sowMonths.indexOf(s.month) >= 0 : (s.month >= 2 && s.month <= 6);
+        var cost = c.kind === 'perennial' ? c.installPerMu * p.mu : 0;
+        var note = c.kind === 'annual' ? c.sowMonths.join('/') + '月' : c.firstYield + '年起产';
+        opts += '<option value="' + cid + '" ' + (okSeason ? '' : 'disabled') + '>' +
+          c.name + '（' + note + (cost > 0 ? ' · 苗木 ' + fm1(cost) + ' 两' : ' · 籽种佃户自备') + '）</option>';
+      });
+      var actions = '<div class="plot-actions">' +
+        (p.crop ? '' : '<select data-act="plant" data-plot="' + p.id + '">' + opts + '</select>') +
+        '<button class="mini-btn" data-act="fert" data-plot="' + p.id + '"' +
+        (s.cash < D.FERTILIZE_COST || p.fertility >= 95 ? ' disabled' : '') + '>施肥 ' + D.FERTILIZE_COST + ' 两</button>' +
+        (p.crop ? '' : '<button class="mini-btn" data-act="fallow" data-plot="' + p.id + '">' + (p.fallow ? '复耕' : '休耕') + '</button>') +
+        '</div>';
+      return '<div class="plot-card">' + head + crop + fert + actions + '</div>';
+    }).join('');
+  }
+
+  /* ------------------------------------------------------------ 农事提示 */
+  function renderTips() {
+    var tips = [];
+    var sowable = {}, idle = 0, soon = {}, growing = {};
+    s.plots.forEach(function (p) {
+      if (p.crop && p.cropState) {
+        var c0 = D.CROPS[p.crop];
+        if (p.cropState.kind === 'annual') {
+          var left = p.cropState.due - s.monthIndex;
+          if (left <= 1) soon[c0.name] = (soon[c0.name] || 0) + 1;
+          else { growing[c0.name] = growing[c0.name] || { n: 0, left: left }; growing[c0.name].n++; }
+        }
+        return;
+      }
+      if (p.fallow) return;
+      idle++;
+      ['rice', 'wheat', 'cotton', 'mulberry', 'tea'].forEach(function (cid) {
+        var c = D.CROPS[cid];
+        if (c.kind === 'good') return;
+        if (c.land === 'paddy' && p.type !== 'paddy') return;
+        if (c.land === 'slope' && p.type !== 'slope') return;
+        var ok = c.kind === 'annual' ? c.sowMonths.indexOf(s.month) >= 0 : (s.month >= 2 && s.month <= 6);
+        if (ok) sowable[c.name] = true;
+      });
+    });
+    function fmtMap(m, tail) {
+      return Object.keys(m).map(function (k) {
+        var v = m[k];
+        return k + (v > 1 ? ' ×' + v : '') + tail(v);
+      }).join('、');
+    }
+    if (Object.keys(soon).length) tips.push({ cls: 'good', t: '将熟：' + fmtMap(soon, function () { return ''; }) + '，快收成了，别忘了腾仓。' });
+    if (idle > 0) {
+      var names = Object.keys(sowable);
+      tips.push({ cls: names.length ? '' : 'warn', t: idle + ' 块田闲置' + (names.length
+        ? '，本月还可下种：' + names.join('、') + '。' : '，眼下不是农时，只能等时节。') });
+    }
+    if (Object.keys(growing).length) {
+      tips.push({ cls: '', t: '在田：' + fmtMap(growing, function (v) { return '（' + v.left + ' 月后可收）'; }) + '。' });
+    }
+    var labor = E.laborSupply(s), demand = E.laborDemand(s);
+    if (demand > labor + 0.5) tips.push({ cls: 'warn', t: '人手不足（' + fm1(labor) + ' 对 ' + fm1(demand) + '），收成要打折，宜添长工或招佃。' });
+    if (s.store.rice + s.store.wheat >= E.storeCap(s) * 0.95) tips.push({ cls: 'warn', t: '仓快满了，新粮无处可放，宜粜出一部分。' });
+    var rp = E.getPrice(s, 'rice'), base = D.CROPS.rice.priceBase;
+    if (rp > base * 1.15) tips.push({ cls: 'good', t: '粮价偏高（' + fm1(rp) + ' 两/石），正是粜粮换银的好时候。' });
+    else if (rp < base * 0.9) tips.push({ cls: '', t: '粮价偏低（' + fm1(rp) + ' 两/石），有闲钱不妨囤些，待春荒再卖。' });
+    var low = s.tenants.reduce(function (m, t) { return Math.min(m, t.loyalty); }, 100);
+    if (s.tenants.length && low < 35) tips.push({ cls: 'warn', t: '有佃户忠诚仅 ' + Math.round(low) + '，降些租率或修祠堂，免得举家迁走。' });
+    if (s.debt > 0) tips.push({ cls: '', t: '欠账 ' + fm1(s.debt) + ' 两，每月利钱 ' + fm1(s.debt * 0.012) + ' 两，手头宽裕就还上些。' });
+    if (!tips.length) tips.push({ cls: 'good', t: '庄里一切安稳，按着节令过日子便是。' });
+    $('tips').innerHTML = '<div class="tips-head">农事节令 · 第 ' + s.year + ' 年 ' + s.month + ' 月</div>' +
+      tips.slice(0, 6).map(function (x) {
+        return '<div class="tip-row ' + x.cls + '">' + x.t + '</div>';
+      }).join('');
+  }
+
+  /* ------------------------------------------------------------ 庄况一览 */
+  function renderOverview() {
+    var asset = Math.round(E.calcAsset(s));
+    var grain = E.storeTotal(s), cap = E.storeCap(s);
+    var labor = E.laborSupply(s), demand = E.laborDemand(s);
+    var net = 0;
+    if (lastReport) {
+      lastReport.incomes.forEach(function (x) { net += x[1]; });
+      lastReport.expenses.forEach(function (x) { net -= x[1]; });
+    }
+    var cards = [
+      { label: '家产折银', v: fm1(asset), unit: '两', cls: asset >= 4500 ? 'ok' : (asset < 1800 ? 'warn' : '') },
+      { label: '本年收获', v: Math.round(s.stats.yearHarvest || 0), unit: '石', cls: '' },
+      { label: '仓储余量', v: Math.floor(grain) + '/' + cap, unit: '石', cls: grain >= cap * 0.95 ? 'warn' : '' },
+      { label: '劳力供需', v: fm1(labor) + '/' + fm1(demand), unit: '', cls: demand > labor + 0.5 ? 'warn' : 'ok' },
+      { label: '上月支止', v: (net >= 0 ? '+' : '−') + fm1(Math.abs(net)), unit: '两', cls: net >= 0 ? 'ok' : 'warn' }
+    ];
+    $('overview').innerHTML = cards.map(function (c) {
+      return '<div class="ov-card ' + c.cls + '"><span>' + c.label + '</span><b>' + c.v +
+        (c.unit ? '<i>' + c.unit + '</i>' : '') + '</b></div>';
+    }).join('');
+  }
+
+  /* ------------------------------------------------------------ 右栏 Tabs */
+  function renderTab() {
+    document.querySelectorAll('#tabs button').forEach(function (b) {
+      b.classList.toggle('active', b.dataset.tab === activeTab);
+    });
+    var body = $('tabBody');
+    if (activeTab === 'people') body.innerHTML = tabPeople();
+    else if (activeTab === 'market') body.innerHTML = tabMarket();
+    else if (activeTab === 'build') body.innerHTML = tabBuild();
+    else body.innerHTML = tabLedger();
+  }
+
+  function bar(pct, low) {
+    return '<div class="loyal-bar"><i class="' + (low ? 'low' : '') + '" style="width:' + Math.round(pct) + '%"></i></div>';
+  }
+
+  function tabPeople() {
+    var avgWant = s.tenants.length ? s.tenants.reduce(function (a, t) { return a + t.want; }, 0) / s.tenants.length : 0.47;
+    var html = '<div class="tab-section"><h3>租率 <span class="h3-side">佃户期望你取 ' + Math.round(avgWant * 100) + '% 左右</span></h3>' +
+      '<div class="rent-box"><span class="rent-val">' + Math.round(s.rentShare * 100) + '<small> % 归庄主</small></span>' +
+      '<input type="range" min="30" max="60" step="1" value="' + Math.round(s.rentShare * 100) + '" data-act="rent">' +
+      '<div class="hint-line">租率越高收成越多，但佃户忠诚下降：低于 28 会消极怠工，甚至举家迁走。灾年事件可临时减免。</div></div>';
+
+    html += '<h3>佃户 <span class="h3-side">' + s.tenants.length + '/9 户</span></h3>';
+    s.tenants.forEach(function (t) {
+      html += '<div class="tenant-card"><div class="t-name">' + t.name + '</div>' +
+        '<div class="t-meta">劳力 ' + t.labor + ' · 已佃 ' + t.years + ' 年<br>忠诚 ' + bar(t.loyalty, t.loyalty < 40) +
+        ' <span style="vertical-align:middle">' + Math.round(t.loyalty) + '</span></div>' +
+        '<button class="mini-btn danger" data-act="evict" data-tenant="' + t.id + '">逐出</button></div>';
+    });
+    if (!s.tenants.length) html += '<p class="hint-line dim">庄里没有佃户了，田要荒了。快招佃！</p>';
+    html += '<button class="btn btn-gold small" data-act="hiretenants" data-n="1"' +
+      (s.cash < D.TENANT_SETTLE_COST || s.tenants.length >= 9 ? ' disabled' : '') + '>招佃一户（' + D.TENANT_SETTLE_COST + ' 两）</button></div>';
+
+    var wageCost = s.workers.count * s.workers.wage;
+    html += '<div class="tab-section"><h3>长工 <span class="h3-side">月支 ' + fm1(wageCost) + ' 两</span></h3>' +
+      '<div class="worker-row"><div class="count-ctl">' +
+      '<button class="round-btn" data-act="fireworker"' + (s.workers.count <= 0 ? ' disabled' : '') + '>−</button>' +
+      '<b>' + s.workers.count + '</b>' +
+      '<button class="round-btn" data-act="hireworker"' + (s.workers.count >= 10 ? ' disabled' : '') + '>＋</button>' +
+      '</div><span class="dim" style="font-size:12px">月薪</span>' +
+      '<input type="range" min="8" max="25" step="1" value="' + Math.round(s.workers.wage * 10) + '" data-act="wage" style="width:120px">' +
+      '<b style="font-size:14px">' + fm1(s.workers.wage) + ' 两</b></div>' +
+      '<div class="hint-line">工钱给足，长工做事更麻利；苛待则效率下降。桑园茶山劳力需求大，全靠长工和佃户撑着。</div></div>';
+    return html;
+  }
+
+  function tabMarket() {
+    var html = '<div class="tab-section"><h3>货栈 <span class="h3-side">仓容 ' + Math.floor(E.storeTotal(s)) + '/' + E.storeCap(s) + ' 石</span></h3>';
+    E.GOODS.forEach(function (g) {
+      var p = E.getPrice(s, g);
+      var prev = lastPrices[g] != null ? lastPrices[g] : p;
+      var trend = p > prev * 1.005 ? '<span class="trend-up">▲涨</span>' :
+        (p < prev * 0.995 ? '<span class="trend-down">▼跌</span>' : '<span class="dim" style="font-size:11px">—平</span>');
+      html += '<div class="good-row"><span class="g-name">' + GOODS_NAME[g] + '</span>' +
+        '<span class="g-price"><b>' + p.toFixed(2) + '</b> 两/石 ' + trend + '</span>' +
+        '<span class="g-hold">存 ' + Math.floor(s.store[g]) + '</span>' +
+        '<input type="number" min="1" id="inp-' + g + '" placeholder="数量">' +
+        '<button class="mini-btn" data-act="buygood" data-good="' + g + '">买</button>' +
+        '<button class="mini-btn danger" data-act="sellgood" data-good="' + g + '">卖</button></div>';
+    });
+    html += '<div class="hint-line">青黄不接时粮贵，秋收后谷贱；买价略高于市价，卖价略低——低买高卖是正经门道。</div></div>';
+
+    var cap = E.debtCap(s);
+    html += '<div class="tab-section"><h3>钱庄 <span class="h3-side">可借上限 ' + Math.round(cap) + ' 两</span></h3>' +
+      '<div class="debt-box"><span class="d-num' + (s.debt > 0 ? '' : ' ok') + '">欠账 ' + fm1(s.debt) + ' 两</span>' +
+      '<div class="hint-line">借贷月息 1.2%，按田产与乡望计授信；月终若现银不足，钱庄会自动垫付（计入欠账）。</div>' +
+      '<div style="display:flex;gap:7px;margin-top:10px;align-items:center">' +
+      '<input type="number" class="money-input" id="inp-money" placeholder="数额（两）">' +
+      '<button class="mini-btn" data-act="borrow">借入</button>' +
+      '<button class="mini-btn danger" data-act="repay">偿还</button></div>';
+    s.loansOut.forEach(function (ln) {
+      html += '<div class="loan-chip"><span>放出 ' + ln.principal + ' 两 · 月息 2 分</span><span>余 ' + ln.monthsLeft + ' 个月</span></div>';
+    });
+    s.investments.forEach(function (iv) {
+      html += '<div class="loan-chip"><span>' + iv.name + ' · 每月分红 ' + iv.monthly + ' 两</span><span>余 ' + iv.monthsLeft + ' 个月</span></div>';
+    });
+    html += '</div>';
+    return html;
+  }
+
+  function tabBuild() {
+    var html = '<div class="tab-section"><h3>营建 <span class="h3-side">已投入 ' + Math.round(s.stats.buildSpend) + ' 两</span></h3>';
+    D.BUILDINGS.forEach(function (b, i) {
+      var lv = s.buildings[b.id];
+      var maxed = lv >= b.levels.length;
+      var cost = maxed ? 0 : b.levels[lv].cost;
+      var dots = '<span class="lv-dots">';
+      for (var k = 0; k < b.levels.length; k++) dots += '<i class="' + (k < lv ? 'on' : '') + '"></i>';
+      dots += '</span>';
+      var nextEffect = maxed ? '已臻完备' : levelEffectText(b, lv);
+      html += '<div class="build-card"><div class="build-icon ' + (i % 3 === 1 ? 'gold' : (i % 3 === 2 ? 'red' : '')) + '">' + b.icon + '</div>' +
+        '<div class="build-main"><b>' + b.name + '</b>' + dots + '<p>' + b.desc + '<br>' + nextEffect + '</p></div>' +
+        '<div class="build-side">' + (maxed ? '<span class="dim" style="font-size:12px">满级</span>' :
+          '<div class="cost">' + cost + ' 两</div>' +
+          '<button class="mini-btn" data-act="build" data-building="' + b.id + '"' + (s.cash < cost ? ' disabled' : '') + '>兴造</button>') +
+        '</div></div>';
+    });
+    return html + '</div>';
+  }
+
+  function levelEffectText(b, lv) {
+    var nx = b.levels[lv];
+    var parts = [];
+    if (nx.storage) parts.push('仓容 +' + nx.storage + ' 石，霉变减 ' + Math.round(nx.spoilCut * 100) + '%');
+    if (nx.droughtCut) parts.push('伏旱保全 ' + Math.round(nx.droughtCut * 100) + '%，收成 +' + Math.round(nx.yieldBonus * 100) + '%');
+    if (nx.loyaltyUp) parts.push('佃户忠诚 +月' + nx.loyaltyUp.toFixed(2) + '，乡望 +月' + nx.prestigeUp.toFixed(2));
+    if (nx.income) parts.push('每月进项 ' + nx.income + ' 两');
+    if (nx.protect) parts.push('抵御匪患 ' + Math.round(nx.protect * 100) + '%');
+    if (nx.plagueCut) parts.push('时疫防护 ' + Math.round(nx.plagueCut * 100) + '%');
+    return '升 ' + (lv + 1) + ' 级：' + parts.join('，');
+  }
+
+  function chartSVG() {
+    var data = s.charts;
+    if (data.length < 2) return '<div class="hint-line dim">下个月后开始记录家产曲线。</div>';
+    var W = 480, H = 150, pad = 8;
+    var assets = data.map(function (d) { return d.asset; });
+    var max = Math.max.apply(null, assets), min = Math.min.apply(null, assets);
+    if (max - min < 100) { max += 50; min -= 50; }
+    var ptsA = [], ptsC = [];
+    data.forEach(function (d, i) {
+      var x = pad + (i / (data.length - 1)) * (W - pad * 2);
+      ptsA.push(x.toFixed(1) + ',' + (H - pad - ((d.asset - min) / (max - min)) * (H - pad * 2)).toFixed(1));
+      ptsC.push(x.toFixed(1) + ',' + (H - pad - ((Math.max(min, Math.min(max, d.cash)) - min) / (max - min)) * (H - pad * 2)).toFixed(1));
+    });
+    return '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:150px;display:block">' +
+      '<polyline fill="none" stroke="#c9a24b" stroke-width="2.5" points="' + ptsA.join(' ') + '"/>' +
+      '<polyline fill="none" stroke="#4a7c59" stroke-width="1.5" stroke-dasharray="3 3" points="' + ptsC.join(' ') + '"/>' +
+      '<text x="10" y="16" font-size="11" fill="#7c745f">最高 ' + Math.round(max) + ' 两</text></svg>';
+  }
+
+  function tabLedger() {
+    var html = '<div class="tab-section"><h3>家产曲线 <span class="h3-side">现值约 ' + Math.round(E.calcAsset(s)) + ' 两</span></h3>' +
+      '<div class="chart-box">' + chartSVG() +
+      '<div class="chart-legend"><span><i style="background:#c9a24b"></i>家产折银</span>' +
+      '<span><i style="background:#4a7c59"></i>现银</span></div></div>' +
+      '<div class="stat-grid">' +
+      '<div class="stat-cell">累计收获<b>' + Math.round(s.stats.harvestVol) + ' 石</b></div>' +
+      '<div class="stat-cell">售粮所得<b>' + Math.round(s.stats.sales) + ' 两</b></div>' +
+      '<div class="stat-cell">购入支出<b>' + Math.round(s.stats.purchases) + ' 两</b></div>' +
+      '<div class="stat-cell">经历事件<b>' + s.eventHistory.length + ' 起</b></div></div></div>';
+
+    html += '<div class="tab-section"><h3>成就 <span class="h3-side">' +
+      Object.keys(s.achievements).length + '/' + D.ACHIEVEMENTS.length + '</span></h3><div class="ach-grid">';
+    D.ACHIEVEMENTS.forEach(function (a) {
+      var got = s.achievements[a.id];
+      html += '<div class="ach-cell ' + (got ? 'unlocked' : 'locked') + '"><b>' + a.name + '</b><span>' + a.desc + '</span></div>';
+    });
+    html += '</div></div>';
+
+    html += '<div class="tab-section"><h3>庄中记事</h3><div class="log-list">';
+    var logs = s.logs.slice(-70).reverse();
+    if (!logs.length) html += '<div class="log-row">尚无记事。</div>';
+    logs.forEach(function (l) {
+      html += '<div class="log-row ' + l.kind + '"><span class="lg-m">' + l.y + '年' + l.mo + '月</span>' + l.text + '</div>';
+    });
+    html += '</div></div>';
+    return html;
+  }
+
+  /* ------------------------------------------------------------ 月面板 */
+  function renderMonthPanel() {
+    var html = '';
+    if (lastReport) {
+      var r = lastReport;
+      r.harvests.forEach(function (h) {
+        html += '<div class="mr-row mr-harvest"><span class="mr-tag">收</span><span>' + h.crop + ' ' + h.vol + ' 石' +
+          (h.overflow > 0 ? '（仓满，溢出 ' + h.overflow + ' 石折价售出得 ' + h.soldFor + ' 两）' : '') + '</span></div>';
+      });
+      r.incomes.forEach(function (x) {
+        html += '<div class="mr-row mr-in"><span class="mr-tag">入</span><span>' + x[0] + ' +' + fm1(x[1]) + ' 两</span></div>';
+      });
+      r.expenses.forEach(function (x) {
+        html += '<div class="mr-row mr-out"><span class="mr-tag">出</span><span>' + x[0] + ' −' + fm1(x[1]) + ' 两</span></div>';
+      });
+      r.news.forEach(function (n) {
+        html += '<div class="mr-row mr-news"><span>' + n + '</span></div>';
+      });
+    }
+    $('monthReport').innerHTML = html;
+    var total = E.YEARS * 12, left = total - s.monthIndex + 1;
+    var line = s.monthIndex > total
+      ? '已逾十年 · 第 <b>' + s.year + '</b> 年，庄子还在你手里'
+      : '第 <b>' + s.year + '</b> 年 · 距十年期满还有 <b>' + left + '</b> 个月';
+    $('deadline').innerHTML = line +
+      (s.debt > 0 ? '<br>欠账 ' + fm1(s.debt) + ' 两，月息 1.2% 在滚' : '');
+    $('btnNext').disabled = false;
+    $('btnNext').innerHTML = '下个月 <kbd>Space</kbd>';
+  }
+
+  /* ------------------------------------------------------------ 下个月 */
+  function nextMonth() {
+    if (!s) return;
+    var before = s.monthIndex;
+    E.GOODS.forEach(function (g) { lastPrices[g] = E.getPrice(s, g); });
+    lastReport = E.advanceMonth(s);
+    SFX.play('month');
+    // 成就/要闻提示
+    (lastReport.news || []).forEach(function (n) {
+      if (n.indexOf('成就达成') >= 0) { toast(n, 'gold'); SFX.play('achieve'); fx('达成'); }
+    });
+    render();
+    if (before <= E.YEARS * 12 && s.monthIndex > E.YEARS * 12) {
+      toast('十年期满 · 家业已立。此后不限年期，随时可点「结算」查看评级。', 'gold');
+      fx('十年');
+    }
+    if (s.pendingEvent) { openEvent(); return; }
+  }
+
+  /* ------------------------------------------------------------ 事件 */
+  function openEvent() {
+    var ev = D.EVENTS.find(function (e) { return e.id === s.pendingEvent.id; });
+    if (!ev) { s.pendingEvent = null; render(); return; }
+    currentEvent = ev;
+    $('eventTag').textContent = '事 件 · 第 ' + s.year + ' 年 ' + s.month + ' 月';
+    $('eventTitle').textContent = ev.name;
+    $('eventText').textContent = ev.text;
+    $('eventResult').hidden = true;
+    var box = $('eventChoices');
+    box.innerHTML = '';
+    box.hidden = false;
+    ev.choices.forEach(function (ch, i) {
+      var ok = !ch.can || ch.can(s);
+      var btn = document.createElement('button');
+      btn.className = 'choice-btn';
+      btn.disabled = !ok;
+      btn.innerHTML = ch.label;
+      btn.addEventListener('click', function () { chooseEvent(i); });
+      box.appendChild(btn);
+    });
+    openModal('modal-event');
+    SFX.play('event');
+  }
+
+  function chooseEvent(i) {
+    var r = E.actions.resolveEvent(s, i);
+    if (!r.ok) {
+      toast(r.reason, 'warn');
+      // 银两等条件可能已变，重建选项让按钮的可用状态跟上当前局面
+      if (s.pendingEvent) openEvent();
+      return;
+    }
+    var tone = /损失|殁|败|坏账|贼|歉|逝|迁走|没能在/.test(r.text) ? 'bad' : 'good';
+    SFX.play(tone === 'bad' ? 'bad' : 'good');
+    $('eventChoices').hidden = true;
+    $('eventResult').hidden = false;
+    $('eventResultText').textContent = r.text || '事情就这么过去了。';
+    render();
+  }
+
+  /* ------------------------------------------------------------ 结算（手动查看） */
+  function showResult() {
+    var res = E.manualResult(s);
+    var asset = res.asset;
+    var achN = Object.keys(s.achievements).length;
+    var rt = res.rating;
+    // 五级同等看待：都是「当下的成色」，不是结局，任一级都可继续经营
+    var hero = 'grade-' + rt.grade + (asset < 0 ? ' neg' : '');
+    var title = rt.grade + ' 级 · ' + rt.title;
+    // 距下一级还差多少
+    var next = null;
+    D.RATINGS.forEach(function (r) { if (r.min > asset && (!next || r.min < next.min)) next = r; });
+    var gap = next
+      ? '再攒 <b>' + (next.min - asset) + '</b> 两，便可升 ' + next.grade + ' 级「' + next.title + '」。'
+      : '已是最高门第，且看这份家业能守多久。';
+    // 评级阶梯
+    var ladder = D.RATINGS.slice().reverse().map(function (r) {   // D→S
+      return '<span class="ladder-step' + (r.grade === rt.grade ? ' on' : '') + '">' +
+        '<b>' + r.grade + '</b>' + r.title + '</span>';
+    }).join('');
+    var body = '<div class="result-hero ' + hero + '">' +
+      '<div class="rh-grade">' + rt.grade + '</div>' +
+      '<div class="rh-title">' + title + '</div><div class="rh-sub">' + rt.desc + '</div></div>' +
+      '<div class="result-body"><div class="kv-grid">' +
+      '<div>家产折银</div><div class="highlight">' + asset + ' 两</div>' +
+      '<div>经营月数</div><div>' + s.monthIndex + ' 个月（第 ' + s.year + ' 年 ' + s.month + ' 月）</div>' +
+      '<div>累计收获</div><div>' + Math.round(s.stats.harvestVol) + ' 石</div>' +
+      '<div>名下田产</div><div>' + s.plots.length + ' 块 · ' + E.totalMu(s) + ' 亩</div>' +
+      '<div>经历事件</div><div>' + s.eventHistory.length + ' 起</div>' +
+      '<div>达成成就</div><div>' + achN + ' / ' + D.ACHIEVEMENTS.length + '</div>' +
+      '</div>' +
+      '<div class="ladder">' + ladder + '</div>' +
+      '<p class="gap-line">' + gap + '</p>' +
+      '<p class="hint dim" style="margin-top:10px">' +
+      '难度：' + D.DIFFICULTIES[s.difficulty].name + '。这是当下的家业成色，<b>不是结局</b>——' +
+      'S 到 D 任何一级都能接着经营，点「继续经营」或直接关窗，庄子照旧过下去。' +
+      '</p></div>';
+    $('resultBody').innerHTML = body;
+    openModal('modal-result');
+    SFX.play(rt.grade === 'S' || rt.grade === 'A' ? 'achieve' : 'coin');
+    fx(rt.grade + ' 级');
+  }
+
+  /* ------------------------------------------------------------ 存档 */
+  function slotInfo(json) {
+    if (!json) return null;
+    try {
+      var o = JSON.parse(json);
+      return {
+        year: o.year, month: o.month, difficulty: o.difficulty,
+        asset: o.charts && o.charts.length ? o.charts[o.charts.length - 1].asset : 0,
+        plots: o.plots ? o.plots.length : 0
+      };
+    } catch (e) { return null; }
+  }
+
+  function renderSaves() {
+    var html = '';
+    SLOT_KEYS.forEach(function (key, i) {
+      var json = null;
+      try { json = localStorage.getItem(key); } catch (e) {}
+      var info = slotInfo(json);
+      html += '<div class="save-slot"><div class="s-info"><b>' + SLOT_NAMES[i] + '</b><br>';
+      if (info) {
+        html += '第' + info.year + '年' + info.month + '月 · ' + D.DIFFICULTIES[info.difficulty].name +
+          ' · 田产 ' + info.plots + ' 块 · 约值 ' + Math.round(info.asset) + ' 两';
+      } else html += '空';
+      html += '</div><div class="s-actions">';
+      if (info && i < 3) html += '<button class="mini-btn danger" data-act="delsave" data-slot="' + i + '">删除</button>';
+      if (info) html += '<button class="mini-btn" data-act="loadsave" data-slot="' + i + '">读取</button>';
+      if (i < 3) html += '<button class="mini-btn" data-act="dosave" data-slot="' + i + '">保存当前</button>';
+      html += '</div></div>';
+    });
+    $('saveList').innerHTML = html;
+  }
+
+  function autosave() {
+    if (!s) return;
+    try { localStorage.setItem(SLOT_KEYS[3], E.saveGame(s)); } catch (e) {}
+  }
+
+  /* ------------------------------------------------------------ 导入 / 导出 */
+  // 导出包：外层带 {app,kind,version} 便于识别，save 内是完整局面
+  function exportPayload() {
+    return JSON.stringify({
+      app: 'manor',
+      kind: 'save',
+      version: 3,
+      exportedAt: new Date().toISOString(),
+      note: '庄园物语 · 第' + s.year + '年' + s.month + '月 · ' +
+        D.DIFFICULTIES[s.difficulty].name + ' · 家产约 ' + Math.round(E.calcAsset(s)) + ' 两',
+      save: JSON.parse(E.saveGame(s))
+    }, null, 2);
+  }
+
+  function downloadText(text, filename) {
+    var blob = new Blob([text], { type: 'application/json;charset=utf-8' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () {
+      try { URL.revokeObjectURL(url); } catch (e) {}
+      if (a.parentNode) a.parentNode.removeChild(a);
+    }, 5000);
+  }
+
+  function exportFile() {
+    if (!s) return { ok: false, reason: '还没有开局，无档可导出' };
+    var name = '庄园物语-第' + s.year + '年' + s.month + '月-' +
+      D.DIFFICULTIES[s.difficulty].name + '.json';
+    try {
+      downloadText(exportPayload(), name);
+      toast('已导出：' + name, 'gold');
+      return { ok: true, name: name };
+    } catch (e) {
+      toast('导出失败：' + e.message, 'warn');
+      return { ok: false, reason: e.message };
+    }
+  }
+
+  // 接受三种输入：导出包 / 裸存档 / 存档槽的原始 JSON 字符串
+  function applyImport(text, name) {
+    var obj;
+    try { obj = JSON.parse(text); } catch (e) {
+      return { ok: false, reason: '不是有效的 JSON 文件' };
+    }
+    if (obj && obj.app === 'manor' && obj.save) obj = obj.save;
+    if (!obj || typeof obj !== 'object' || !obj.plots || !obj.store) {
+      return { ok: false, reason: '这不像是《庄园物语》的存档' };
+    }
+    if (obj.version !== 3) {
+      return { ok: false, reason: '存档版本不符（需 v3，实为 v' + obj.version + '）' };
+    }
+    var loaded = E.loadGame(JSON.stringify(obj));
+    if (!loaded) return { ok: false, reason: '存档内容已损坏' };
+    s = loaded;
+    lastReport = null;
+    lastPrices = {};
+    currentEvent = null;
+    closeModal('modal-saves');
+    render();
+    toast('已导入' + (name ? '「' + name + '」' : '') + '：第' + s.year + '年' + s.month + '月，接着过。', 'gold');
+    SFX.play('good');
+    if (s.pendingEvent) openEvent();
+    return { ok: true };
+  }
+
+  function importFile(file) {
+    if (!file) return;
+    if (file.size > 4 * 1024 * 1024) { toast('文件太大，不像是存档', 'warn'); return; }
+    var reader = new FileReader();
+    reader.onload = function () {
+      var r = applyImport(String(reader.result), file.name.replace(/\.json$/i, ''));
+      if (!r.ok) { toast('导入失败：' + r.reason, 'warn'); SFX.play('error'); }
+    };
+    reader.onerror = function () { toast('文件读不出来，换个文件试试', 'warn'); };
+    reader.readAsText(file, 'utf-8');
+  }
+
+  // 供测试 / 脚本调用
+  window.ManorSaveIO = { exportFile: exportFile, exportPayload: exportPayload, importText: applyImport };
+
+  /* ------------------------------------------------------------ 绑定 */
+  function bind() {
+    $('tabs').addEventListener('click', function (e) {
+      var b = e.target.closest('button[data-tab]');
+      if (!b) return;
+      activeTab = b.dataset.tab;
+      renderTab();
+    });
+
+    // 所有 data-act 点击用 document 级委托：
+    // 买地/开垦/卖田/施肥/休耕在左栏（fieldsBuy/plotGrid），
+    // 招佃/买卖货/营建在右栏（tabBody），存档按钮在弹窗里——三处都要能点到
+    document.addEventListener('click', function (e) {
+      var el = e.target.closest('[data-act]');
+      if (!el) return;
+      var act2 = el.dataset.act;
+      SFX.unlock();
+      var r;
+      switch (act2) {
+        case 'buyplot': r = act(function () { return E.actions.buyPlot(s, el.dataset.type); }); if (r) SFX.play('pay'); break;
+        case 'reclaim': r = act(function () { return E.actions.reclaimPlot(s); }); if (r) SFX.play('pay'); break;
+        case 'sellplot': r = act(function () { return E.actions.sellPlot(s, Number(el.dataset.plot)); }); if (r) SFX.play('coin'); break;
+        case 'fert': r = act(function () { return E.actions.fertilize(s, Number(el.dataset.plot)); }); if (r) SFX.play('pay'); break;
+        case 'fallow': r = act(function () { return E.actions.toggleFallow(s, Number(el.dataset.plot)); }); break;
+        case 'evict': r = act(function () { return E.actions.evictTenant(s, Number(el.dataset.tenant)); }); break;
+        case 'hiretenants': r = act(function () { return E.actions.hireTenants(s, el.dataset.n); }); if (r) SFX.play('good'); break;
+        case 'hireworker': r = act(function () { return E.actions.hireWorkers(s, 1); }); break;
+        case 'fireworker': r = act(function () { return E.actions.fireWorkers(s, 1); }); break;
+        case 'buygood': {
+          var inp = $('inp-' + el.dataset.good);
+          r = act(function () { return E.actions.buyGood(s, el.dataset.good, inp && inp.value); });
+          if (r) SFX.play('pay');
+          break;
+        }
+        case 'sellgood': {
+          var inp2 = $('inp-' + el.dataset.good);
+          r = act(function () { return E.actions.sellGood(s, el.dataset.good, inp2 && inp2.value); });
+          if (r) SFX.play('coin');
+          break;
+        }
+        case 'borrow': {
+          var mi = $('inp-money');
+          r = act(function () { return E.actions.borrow(s, mi && mi.value); });
+          if (r) SFX.play('coin');
+          break;
+        }
+        case 'repay': {
+          var mi2 = $('inp-money');
+          r = act(function () { return E.actions.repay(s, mi2 && mi2.value); });
+          if (r) SFX.play('pay');
+          break;
+        }
+        case 'build': r = act(function () { return E.actions.build(s, el.dataset.building); }); if (r) { SFX.play('build'); fx('落成'); } break;
+        case 'dosave': {
+          try {
+            localStorage.setItem(SLOT_KEYS[Number(el.dataset.slot)], E.saveGame(s));
+            toast('已保存到' + SLOT_NAMES[Number(el.dataset.slot)], 'good'); SFX.play('good');
+          } catch (err) { toast('保存失败', 'warn'); }
+          renderSaves();
+          break;
+        }
+        case 'loadsave': {
+          var json = null;
+          try { json = localStorage.getItem(SLOT_KEYS[Number(el.dataset.slot)]); } catch (err) {}
+          var loaded = json && E.loadGame(json);
+          if (!loaded) { toast('存档无法读取', 'warn'); break; }
+          s = loaded; lastReport = null; lastPrices = {}; closeModal('modal-saves');
+          toast('已读取' + SLOT_NAMES[Number(el.dataset.slot)], 'gold');
+          render();
+          break;
+        }
+        case 'delsave': {
+          try { localStorage.removeItem(SLOT_KEYS[Number(el.dataset.slot)]); } catch (err) {}
+          renderSaves();
+          break;
+        }
+      }
+    });
+
+    // change / input 采用 document 级委托：田块卡片（plotGrid）与侧栏（tabBody）都需响应
+    document.addEventListener('change', function (e) {
+      var el = e.target.closest ? e.target.closest('[data-act]') : null;
+      if (!el) return;
+      if (el.dataset.act === 'plant') {
+        if (!el.value) return;
+        act(function () { return E.actions.plant(s, Number(el.dataset.plot), el.value); });
+      } else if (el.dataset.act === 'rent') {
+        act(function () { return E.actions.setRent(s, Number(el.value) / 100); });
+      } else if (el.dataset.act === 'wage') {
+        act(function () { return E.actions.setWage(s, Number(el.value) / 10); });
+      }
+    });
+    // 拖动中只更新显示，不触发结算（松手才生效）
+    document.addEventListener('input', function (e) {
+      var el = e.target.closest ? e.target.closest('[data-act]') : null;
+      if (!el) return;
+      if (el.dataset.act === 'rent') {
+        var rv = el.parentElement.querySelector('.rent-val');
+        if (rv) rv.innerHTML = el.value + '<small> % 归庄主</small>';
+      } else if (el.dataset.act === 'wage') {
+        var b = el.nextElementSibling;
+        if (b) b.textContent = fm1(Number(el.value) / 10) + ' 两';
+      }
+    });
+
+    $('btnNext').addEventListener('click', function () { SFX.unlock(); nextMonth(); });
+
+    $('btnEventOk').addEventListener('click', function () {
+      closeModal('modal-event');
+      render();
+    });
+
+    $('btnResultLedger').addEventListener('click', function () {
+      closeModal('modal-result');
+      activeTab = 'ledger'; renderTab();
+    });
+    $('btnResultNew').addEventListener('click', function () {
+      closeModal('modal-result');
+      render();
+    });
+
+    $('btnSettle').addEventListener('click', function () { if (s) showResult(); });
+    $('btnSaves').addEventListener('click', function () { renderSaves(); openModal('modal-saves'); });
+    $('btnExport').addEventListener('click', function () { exportFile(); });
+    $('btnImport').addEventListener('click', function () { $('fileImport').click(); });
+    $('fileImport').addEventListener('change', function (e) {
+      importFile(e.target.files && e.target.files[0]);
+      e.target.value = '';   // 允许重复导入同一个文件
+    });
+    // 拖文件进存档窗也能导入
+    var panel = document.querySelector('#modal-saves .modal-panel');
+    ['dragenter', 'dragover'].forEach(function (ev) {
+      panel.addEventListener(ev, function (e) { e.preventDefault(); panel.classList.add('dropping'); });
+    });
+    ['dragleave', 'drop'].forEach(function (ev) {
+      panel.addEventListener(ev, function (e) { e.preventDefault(); panel.classList.remove('dropping'); });
+    });
+    panel.addEventListener('drop', function (e) {
+      var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+      if (f) importFile(f);
+    });
+    $('btnHelp').addEventListener('click', function () { openModal('modal-help'); });
+    $('btnSound').addEventListener('click', function () {
+      prefs.sound = !prefs.sound;
+      SFX.setEnabled(prefs.sound);
+      if (prefs.sound) SFX.play('coin');
+      savePrefs(); updateSoundBtn();
+    });
+    $('btnNew').addEventListener('click', openNewGame);
+    $('btnLang').addEventListener('click', function () {
+      var L = window.ManorLang;
+      if (!L) return;
+      L.toggle();
+      if (s) render();          // 重画动态区域（静态部件由语言层负责）
+    });
+
+    document.addEventListener('click', function (e) {
+      if (e.target.hasAttribute && e.target.hasAttribute('data-close')) {
+        var modal = e.target.closest('.modal');
+        if (modal && modal.id !== 'modal-event') closeModal(modal.id);
+      }
+    });
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') { closeModals(); return; }
+      if (anyModalOpen()) return;
+      if (e.code === 'Space' || e.key === 'Enter') {
+        e.preventDefault();
+        if (s) nextMonth();
+      }
+    });
+
+    document.addEventListener('pointerdown', function () { SFX.unlock(); }, { once: true });
+  }
+
+  function openNewGame() {
+    var html = '';
+    Object.keys(D.DIFFICULTIES).forEach(function (k) {
+      var d = D.DIFFICULTIES[k];
+      html += '<button class="diff-card" data-diff="' + k + '"><b>' + d.name + '</b><span>' + d.desc +
+        '（起始 ' + d.cash + ' 两 · ' + d.tenants + ' 户佃户）</span></button>';
+    });
+    $('diffList').innerHTML = html;
+    openModal('modal-newgame');
+  }
+
+  function updateSoundBtn() {
+    $('btnSound').textContent = '音效 ' + (prefs.sound ? '开' : '关');
+    $('btnSound').classList.toggle('off', !prefs.sound);
+  }
+
+  function init() {
+    bind();
+    SFX.setEnabled(prefs.sound !== false);
+    updateSoundBtn();
+    $('diffList').addEventListener('click', function (e) {
+      var b = e.target.closest('[data-diff]');
+      if (!b) return;
+      closeModal('modal-newgame');
+      start(b.dataset.diff);
+    });
+    var urlSeed = null;
+    try { urlSeed = Number(new URLSearchParams(location.search).get('seed')) || null; } catch (e) {}
+    start('normal', urlSeed);
+    if (!prefs.seenHelp) {
+      prefs.seenHelp = true; savePrefs();
+      setTimeout(function () { openModal('modal-help'); }, 600);
+    }
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+})();
+
+</script>
+</body>
+</html>
